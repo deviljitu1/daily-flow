@@ -19,22 +19,27 @@ const AddTaskDialog = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Development');
   const [date, setDate] = useState(todayStr());
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !user) return;
-    addTask({
-      userId: user.id,
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      date,
-    });
-    setTitle('');
-    setDescription('');
-    setCategory('Development');
-    setDate(todayStr());
-    setOpen(false);
+    setSubmitting(true);
+    try {
+      await addTask({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        date,
+      });
+      setTitle('');
+      setDescription('');
+      setCategory('Development');
+      setDate(todayStr());
+      setOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -93,8 +98,8 @@ const AddTaskDialog = () => {
               <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
           </div>
-          <Button type="submit" className="w-full">
-            Create Task
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? 'Creating...' : 'Create Task'}
           </Button>
         </form>
       </DialogContent>

@@ -10,32 +10,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 
 const AdminDashboard = () => {
-  const { employees, tasks } = useData();
+  const { employees, tasks, loading } = useData();
   const today = todayStr();
   const [dateFilter, setDateFilter] = useState(today);
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const activeEmployees = employees.filter(e => e.isActive && e.role === 'employee');
+  const activeEmployees = employees.filter(e => e.is_active && e.role === 'employee');
   const todayTasks = tasks.filter(t => t.date === today);
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
-  const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.timeSessions), 0);
+  const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
-  // Apply filters
   let filteredTasks = [...tasks];
   if (dateFilter) filteredTasks = filteredTasks.filter(t => t.date === dateFilter);
-  if (employeeFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.userId === employeeFilter);
+  if (employeeFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.user_id === employeeFilter);
   if (typeFilter !== 'all') {
-    const empIds = employees.filter(e => e.employeeType === typeFilter).map(e => e.id);
-    filteredTasks = filteredTasks.filter(t => empIds.includes(t.userId));
+    const empIds = employees.filter(e => e.employee_type === typeFilter).map(e => e.user_id);
+    filteredTasks = filteredTasks.filter(t => empIds.includes(t.user_id));
   }
   if (statusFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.status === (statusFilter as TaskStatus));
 
   const getEmployeeName = (userId: string) => {
-    const emp = employees.find(e => e.id === userId);
-    return emp ? `${emp.name} (${emp.employeeType})` : 'Unknown';
+    const emp = employees.find(e => e.user_id === userId);
+    return emp ? `${emp.name} (${emp.employee_type})` : 'Unknown';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">
@@ -51,7 +58,6 @@ const AdminDashboard = () => {
         <StatCard icon={Clock} label="Total Hours Today" value={formatDuration(totalTimeToday)} />
       </div>
 
-      {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div>
           <Label className="text-xs text-muted-foreground mb-1 block">Date</Label>
@@ -68,7 +74,7 @@ const AdminDashboard = () => {
               {employees
                 .filter(e => e.role === 'employee')
                 .map(e => (
-                  <SelectItem key={e.id} value={e.id}>
+                  <SelectItem key={e.user_id} value={e.user_id}>
                     {e.name}
                   </SelectItem>
                 ))}
@@ -107,16 +113,13 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Task list */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          Tasks ({filteredTasks.length})
-        </h2>
+        <h2 className="text-lg font-semibold">Tasks ({filteredTasks.length})</h2>
         {filteredTasks.length === 0 ? (
           <p className="text-muted-foreground py-12 text-center">No tasks match the current filters.</p>
         ) : (
           filteredTasks.map(task => (
-            <TaskCard key={task.id} task={task} showUser={getEmployeeName(task.userId)} />
+            <TaskCard key={task.id} task={task} showUser={getEmployeeName(task.user_id)} readOnly />
           ))
         )}
       </div>

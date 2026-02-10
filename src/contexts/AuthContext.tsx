@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { User } from '@/types';
-import { seedEmployees } from '@/data/seed';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { AuthUser, AppRole, EmployeeType } from '@/types';
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  user: AuthUser | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ error: string | null }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -18,31 +19,92 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('wt_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = useCallback((email: string, password: string): boolean => {
-    const employees: User[] = JSON.parse(
-      localStorage.getItem('wt_employees') || JSON.stringify(seedEmployees)
-    );
-    const found = employees.find(e => e.email === email && e.password === password);
-    if (found && found.isActive) {
-      setUser(found);
-      localStorage.setItem('wt_user', JSON.stringify(found));
+  const fetchProfile = useCallback(async (authUserId: string, email: string) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+
+    if (profile) {
+      if (!profile.is_active) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setLoading(false);
+        return false;
+      }
+
+      setUser({
+        id: profile.id,
+        userId: profile.user_id,
+        name: profile.name,
+        email,
+        employeeType: profile.employee_type as EmployeeType,
+        isActive: profile.is_active,
+        role: (roleData?.role as AppRole) || 'employee',
+      });
       return true;
     }
     return false;
   }, []);
 
-  const logout = useCallback(() => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setTimeout(async () => {
+          await fetchProfile(session.user.id, session.user.email || '');
+          setLoading(false);
+        }, 0);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+
+    // Check is_active
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_active')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    if (profile && !profile.is_active) {
+      await supabase.auth.signOut();
+      return { error: 'Your account has been deactivated. Contact your administrator.' };
+    }
+
+    return { error: null };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('wt_user');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

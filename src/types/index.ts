@@ -1,42 +1,29 @@
-export type UserRole = 'admin' | 'employee';
+import { Tables, Enums } from '@/integrations/supabase/types';
 
-export type EmployeeType =
-  | 'Developer'
-  | 'Graphic Designer'
-  | 'Digital Marketer'
-  | 'Video Editor'
-  | 'Content Writer'
-  | 'SEO Executive'
-  | 'Sales'
-  | 'Other';
+export type EmployeeType = Enums<'employee_type'>;
+export type TaskStatus = Enums<'task_status'>;
+export type AppRole = Enums<'app_role'>;
 
-export type TaskStatus = 'Not Started' | 'In Progress' | 'Finished';
+export type Profile = Tables<'profiles'>;
+export type TimeSession = Tables<'time_sessions'>;
+export type UserRoleRow = Tables<'user_roles'>;
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  employeeType: EmployeeType;
-  isActive: boolean;
+export interface TaskWithSessions extends Tables<'tasks'> {
+  time_sessions: TimeSession[];
 }
 
-export interface TimeSession {
-  start: number;
-  end: number | null;
+export interface ProfileWithRole extends Profile {
+  role: AppRole;
 }
 
-export interface Task {
+export interface AuthUser {
   id: string;
   userId: string;
-  title: string;
-  description: string;
-  category: string;
-  date: string;
-  status: TaskStatus;
-  timeSessions: TimeSession[];
-  createdAt: number;
+  name: string;
+  email: string;
+  employeeType: EmployeeType;
+  isActive: boolean;
+  role: AppRole;
 }
 
 export const EMPLOYEE_TYPES: EmployeeType[] = [

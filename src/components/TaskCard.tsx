@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Task, TaskStatus } from '@/types';
+import { TaskStatus, TaskWithSessions } from '@/types';
 import { useData } from '@/contexts/DataContext';
 import { formatTimer, formatDuration, getElapsedMs, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
@@ -14,25 +14,36 @@ const statusConfig: Record<TaskStatus, { className: string; label: string }> = {
 };
 
 interface TaskCardProps {
-  task: Task;
+  task: TaskWithSessions;
   showUser?: string;
+  readOnly?: boolean;
 }
 
-const TaskCard = ({ task, showUser }: TaskCardProps) => {
+const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
   const { startTimer, pauseTimer, finishTask } = useData();
-  const isRunning = task.timeSessions.some(s => s.end === null);
+  const isRunning = task.time_sessions.some(s => s.end_time === null);
   const isFinished = task.status === 'Finished';
-  const [elapsed, setElapsed] = useState(() => getElapsedMs(task.timeSessions));
+  const [elapsed, setElapsed] = useState(() => getElapsedMs(task.time_sessions));
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    setElapsed(getElapsedMs(task.timeSessions));
+    setElapsed(getElapsedMs(task.time_sessions));
     if (isRunning) {
-      const iv = setInterval(() => setElapsed(getElapsedMs(task.timeSessions)), 1000);
+      const iv = setInterval(() => setElapsed(getElapsedMs(task.time_sessions)), 1000);
       return () => clearInterval(iv);
     }
-  }, [task.timeSessions, isRunning]);
+  }, [task.time_sessions, isRunning]);
 
   const config = statusConfig[task.status];
+
+  const handleAction = async (fn: (id: string) => Promise<void>) => {
+    setActionLoading(true);
+    try {
+      await fn(task.id);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <Card className="p-4">
@@ -54,7 +65,6 @@ const TaskCard = ({ task, showUser }: TaskCardProps) => {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* Timer display */}
           <div className="flex items-center gap-1.5 font-mono text-sm min-w-[80px]">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             {isRunning ? (
@@ -66,22 +76,34 @@ const TaskCard = ({ task, showUser }: TaskCardProps) => {
             )}
           </div>
 
-          {/* Controls */}
-          {!isFinished && (
+          {!isFinished && !readOnly && (
             <div className="flex items-center gap-1">
               {isRunning ? (
-                <Button size="icon" variant="outline" onClick={() => pauseTimer(task.id)} className="h-8 w-8">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => handleAction(pauseTimer)}
+                  disabled={actionLoading}
+                  className="h-8 w-8"
+                >
                   <Pause className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button size="icon" variant="outline" onClick={() => startTimer(task.id)} className="h-8 w-8">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => handleAction(startTimer)}
+                  disabled={actionLoading}
+                  className="h-8 w-8"
+                >
                   <Play className="h-4 w-4" />
                 </Button>
               )}
               <Button
                 size="icon"
                 variant="outline"
-                onClick={() => finishTask(task.id)}
+                onClick={() => handleAction(finishTask)}
+                disabled={actionLoading}
                 className="h-8 w-8 text-status-done hover:bg-status-done/10"
               >
                 <CheckCircle className="h-4 w-4" />
