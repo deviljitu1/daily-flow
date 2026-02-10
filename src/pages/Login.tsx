@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,19 +12,52 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, isAuthenticated } = useAuth();
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedDone, setSeedDone] = useState(false);
+  const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = login(email.trim(), password);
-    if (success) {
-      navigate('/');
-    } else {
-      setError('Invalid credentials or account is inactive.');
+    setLoginLoading(true);
+    try {
+      const result = await login(email.trim(), password);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        navigate('/');
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleSeedDemo = async () => {
+    setSeeding(true);
+    setError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('seed-demo-data');
+      if (error) {
+        setError('Failed to seed demo data: ' + error.message);
+      } else {
+        setSeedDone(true);
+      }
+    } catch (err) {
+      setError('Failed to seed demo data.');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -81,8 +115,8 @@ const Login = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              Sign in
+            <Button type="submit" className="w-full" disabled={loginLoading}>
+              {loginLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
 
@@ -96,6 +130,20 @@ const Login = () => {
                 <span className="font-medium text-foreground">Employee:</span> employee@demo.com / employee123
               </p>
             </div>
+            {!seedDone && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 w-full"
+                onClick={handleSeedDemo}
+                disabled={seeding}
+              >
+                {seeding ? 'Seeding demo data...' : 'Seed Demo Data'}
+              </Button>
+            )}
+            {seedDone && (
+              <p className="text-xs text-status-done mt-2 font-medium">✓ Demo data seeded! You can now log in.</p>
+            )}
           </Card>
         </div>
       </div>

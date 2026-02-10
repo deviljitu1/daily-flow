@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export interface TimeSessionLike {
-  start: number;
-  end: number | null;
+  start_time: number;
+  end_time: number | null;
 }
 
 export function formatTimer(ms: number): string {
@@ -34,7 +34,7 @@ export function formatDuration(ms: number): string {
 }
 
 export function getElapsedMs(sessions: TimeSessionLike[]): number {
-  return sessions.reduce((total, s) => total + ((s.end ?? Date.now()) - s.start), 0);
+  return sessions.reduce((total, s) => total + ((s.end_time ?? Date.now()) - s.start_time), 0);
 }
 
 export function todayStr(): string {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { EMPLOYEE_TYPES, EmployeeType, User } from '@/types';
+import { EMPLOYEE_TYPES, EmployeeType } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,34 +11,67 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, UserCheck, UserX } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const Employees = () => {
-  const { employees, addEmployee, toggleEmployeeActive } = useData();
+  const { employees, toggleEmployeeActive, refreshEmployees, loading } = useData();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [empType, setEmpType] = useState<EmployeeType>('Developer');
+  const [submitting, setSubmitting] = useState(false);
 
   const employeeList = employees.filter(e => e.role === 'employee');
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) return;
-    addEmployee({
-      name: name.trim(),
-      email: email.trim(),
-      password: password.trim(),
-      role: 'employee',
-      employeeType: empType,
-      isActive: true,
-    });
-    setName('');
-    setEmail('');
-    setPassword('');
-    setEmpType('Developer');
-    setOpen(false);
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-employee', {
+        body: {
+          name: name.trim(),
+          email: email.trim(),
+          password: password.trim(),
+          employee_type: empType,
+          role: 'employee',
+        },
+      });
+
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      if (data?.error) {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+        return;
+      }
+
+      toast({ title: 'Success', description: 'Employee created successfully' });
+      setName('');
+      setEmail('');
+      setPassword('');
+      setEmpType('Developer');
+      setOpen(false);
+      await refreshEmployees();
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const handleToggle = async (profileId: string, currentActive: boolean) => {
+    await toggleEmployeeActive(profileId, !currentActive);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">
@@ -108,8 +142,8 @@ const Employees = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full">
-                Add Employee
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? 'Creating...' : 'Add Employee'}
               </Button>
             </form>
           </DialogContent>
@@ -121,53 +155,63 @@ const Employees = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employeeList.map(emp => (
-              <TableRow key={emp.id}>
-                <TableCell className="font-medium">{emp.name}</TableCell>
-                <TableCell className="text-muted-foreground">{emp.email}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{emp.employeeType}</Badge>
-                </TableCell>
-                <TableCell>
-                  {emp.isActive ? (
-                    <Badge variant="outline" className="bg-status-done/15 text-status-done border-status-done/30">
-                      Active
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-status-idle/15 text-status-idle border-status-idle/30">
-                      Inactive
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleEmployeeActive(emp.id)}
-                    className="gap-1"
-                  >
-                    {emp.isActive ? (
-                      <>
-                        <UserX className="h-4 w-4" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="h-4 w-4" />
-                        Activate
-                      </>
-                    )}
-                  </Button>
+            {employeeList.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  No employees yet. Add one to get started.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              employeeList.map(emp => (
+                <TableRow key={emp.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{emp.name}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{emp.employee_type}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {emp.is_active ? (
+                      <Badge variant="outline" className="bg-status-done/15 text-status-done border-status-done/30">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-status-idle/15 text-status-idle border-status-idle/30">
+                        Inactive
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleToggle(emp.id, emp.is_active)}
+                      className="gap-1"
+                    >
+                      {emp.is_active ? (
+                        <>
+                          <UserX className="h-4 w-4" />
+                          Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="h-4 w-4" />
+                          Activate
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>

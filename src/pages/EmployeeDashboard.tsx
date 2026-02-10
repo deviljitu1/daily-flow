@@ -10,21 +10,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const { tasks } = useData();
+  const { tasks, loading } = useData();
   const today = todayStr();
 
-  const myTasks = tasks.filter(t => t.userId === user?.id);
+  const myTasks = tasks.filter(t => t.user_id === user?.userId);
   const todayTasks = myTasks.filter(t => t.date === today);
   const ongoingTasks = myTasks.filter(t => t.status === 'In Progress');
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
-  const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.timeSessions), 0);
+  const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
-  // Weekly total
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const weekTasks = myTasks.filter(t => t.date >= weekStartStr && t.date <= today);
-  const weeklyTime = weekTasks.reduce((sum, t) => sum + getElapsedMs(t.timeSessions), 0);
+  const weeklyTime = weekTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl">
