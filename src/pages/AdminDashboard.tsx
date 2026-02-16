@@ -4,11 +4,12 @@ import { todayStr, getElapsedMs, formatDuration } from '@/lib/utils';
 import { EMPLOYEE_TYPES, TaskStatus } from '@/types';
 import TaskCard from '@/components/TaskCard';
 import StatCard from '@/components/StatCard';
-import { Users, ClipboardList, CheckCircle, Clock } from 'lucide-react';
+import { Users, ClipboardList, CheckCircle, Clock, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import DashboardCharts from '@/components/DashboardCharts';
+import { Button } from '@/components/ui/button';
 
 const AdminDashboard = () => {
   const { employees, tasks, loading } = useData();
@@ -23,6 +24,10 @@ const AdminDashboard = () => {
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
   const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
+  // This value is computed in the render, but we need it for downloadCSV
+  // It's cleaner to compute it once.
+
+  // Actually the filteredTasks calculation was below this block in original file, let's restore it too.
   let filteredTasks = [...tasks];
   if (dateFilter) filteredTasks = filteredTasks.filter(t => t.date === dateFilter);
   if (employeeFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.user_id === employeeFilter);
@@ -37,22 +42,51 @@ const AdminDashboard = () => {
     return emp ? `${emp.name} (${emp.employee_type})` : 'Unknown';
   };
 
+  const downloadCSV = () => {
+    const headers = ['Task Title', 'Description', 'Category', 'Date', 'Status', 'Employee', 'Duration (mins)'];
+    const rows = filteredTasks.map(t => {
+      const emp = employees.find(e => e.user_id === t.user_id);
+      const duration = Math.round(getElapsedMs(t.time_sessions) / 60000);
+      return [
+        `"${t.title.replace(/"/g, '""')}"`,
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        t.category,
+        t.date,
+        t.status,
+        `"${(emp?.name || 'Unknown').replace(/"/g, '""')}"`,
+        duration
+      ].join(',');
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `tasks_export_${todayStr()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+    // ...
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Welcome back. Here's what's happening today.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2">Welcome back. Here's what's happening today.</p>
+        </div>
+        <Button onClick={downloadCSV} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* ... stats ... */}
         <StatCard icon={Users} label="Active Employees" value={activeEmployees.length} />
         <StatCard icon={ClipboardList} label="Tasks Today" value={todayTasks.length} />
         <StatCard icon={CheckCircle} label="Completed Today" value={completedToday} />

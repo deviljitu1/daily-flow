@@ -5,7 +5,7 @@ import { formatTimer, formatDuration, getElapsedMs, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2, Copy } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
@@ -23,7 +23,7 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
-  const { startTimer, pauseTimer, finishTask, deleteTask } = useData();
+  const { startTimer, pauseTimer, finishTask, deleteTask, addTask } = useData();
   const isRunning = task.time_sessions.some(s => s.end_time === null);
   const isFinished = task.status === 'Finished';
   const [elapsed, setElapsed] = useState(() => getElapsedMs(task.time_sessions));
@@ -42,6 +42,20 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
   }, [task.time_sessions, isRunning]);
 
   const config = statusConfig[task.status] || statusConfig['Not Started'];
+
+  const handleDuplicate = async () => {
+    setActionLoading(true);
+    try {
+      await addTask({
+        title: `${task.title} (Copy)`,
+        description: task.description || '',
+        category: task.category,
+        date: task.date,
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleAction = async (fn: (id: string) => Promise<void>) => {
     setActionLoading(true);
@@ -86,6 +100,10 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
                 <DropdownMenuItem onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Task
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicate}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowDelete(true)} className="text-destructive focus:text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
