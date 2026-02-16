@@ -156,10 +156,31 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
               isRunning ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/30 border-border text-muted-foreground"
             )}>
               <Clock className={cn("h-4 w-4", isRunning && "animate-spin-slow")} />
-              <span className="font-bold tracking-wide">
-                {isRunning ? formatTimer(elapsed) : (elapsed > 0 ? formatDuration(elapsed) : '00:00:00')}
-              </span>
+              <div className="flex flex-col items-end leading-none">
+                <span className="font-bold tracking-wide">
+                  {formatTimer(elapsed)}
+                </span>
+                {task.target_minutes && (
+                  <span className={cn(
+                    "text-[10px] font-medium mt-0.5",
+                    (task.target_minutes * 60 * 1000 - elapsed) < 0 ? "text-destructive" : "text-muted-foreground"
+                  )}>
+                    / {task.target_minutes}m
+                  </span>
+                )}
+              </div>
             </div>
+
+            {task.target_minutes && (
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden mt-1 max-w-[120px]">
+                <div
+                  className={cn("h-full transition-all duration-1000 ease-linear",
+                    (task.target_minutes * 60 * 1000 - elapsed) < 0 ? "bg-destructive w-full" : "bg-primary"
+                  )}
+                  style={{ width: `${Math.min(100, (elapsed / (task.target_minutes * 60 * 1000)) * 100)}%` }}
+                />
+              </div>
+            )}
 
             {!isFinished && !readOnly && (
               <div className="flex items-center gap-2">

@@ -19,6 +19,7 @@ const AddTaskDialog = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Development');
   const [date, setDate] = useState(todayStr());
+  const [targetMinutes, setTargetMinutes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,11 +32,13 @@ const AddTaskDialog = () => {
         description: description.trim(),
         category,
         date,
+        target_minutes: targetMinutes ? parseInt(targetMinutes) : undefined,
       });
       setTitle('');
       setDescription('');
       setCategory('Development');
       setDate(todayStr());
+      setTargetMinutes('');
       setOpen(false);
     } finally {
       setSubmitting(false);
@@ -104,6 +107,20 @@ const AddTaskDialog = () => {
                 onChange={e => setDate(e.target.value)}
                 className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors"
               />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="target-time" className="text-sm font-medium">Target Duration (Minutes)</Label>
+              <Input
+                id="target-time"
+                type="number"
+                min="1"
+                placeholder="e.g. 30"
+                value={targetMinutes}
+                onChange={e => setTargetMinutes(e.target.value)}
+                className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors"
+              />
+              <p className="text-xs text-muted-foreground">Optional. You will be reminded when time is almost up.</p>
             </div>
           </div>
           <Button type="submit" className="w-full font-semibold shadow-md" disabled={submitting}>

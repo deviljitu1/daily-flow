@@ -20,6 +20,8 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
     const [description, setDescription] = useState(task.description || '');
     const [category, setCategory] = useState(task.category);
     const [date, setDate] = useState(task.date);
+    // Initialize targetMinutes safely
+    const [targetMinutes, setTargetMinutes] = useState(task.target_minutes ? String(task.target_minutes) : '');
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -28,6 +30,7 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
             setDescription(task.description || '');
             setCategory(task.category);
             setDate(task.date);
+            setTargetMinutes(task.target_minutes ? String(task.target_minutes) : '');
         }
     }, [open, task]);
 
@@ -41,6 +44,7 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
                 description: description.trim(),
                 category,
                 date,
+                target_minutes: targetMinutes ? parseInt(targetMinutes) : undefined,
             });
             onOpenChange(false);
         } finally {
@@ -97,6 +101,21 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
                         <div className="space-y-2">
                             <Label htmlFor="edit-date">Date</Label>
                             <Input id="edit-date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2 space-y-2">
+                            <Label htmlFor="edit-target-time">Target Duration (Minutes)</Label>
+                            <Input
+                                id="edit-target-time"
+                                type="number"
+                                min="1"
+                                placeholder="e.g. 30"
+                                value={targetMinutes}
+                                onChange={e => setTargetMinutes(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Optional. Set reminders for task completion.</p>
                         </div>
                     </div>
                     <DialogFooter>

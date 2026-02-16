@@ -1,14 +1,16 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { TaskWithSessions, ProfileWithRole, AppRole } from '@/types';
+import { toast } from '@/hooks/use-toast';
+import { getElapsedMs } from '@/lib/utils';
 
 interface DataContextType {
   employees: ProfileWithRole[];
   tasks: TaskWithSessions[];
   loading: boolean;
-  addTask: (task: { title: string; description: string; category: string; date: string }) => Promise<void>;
-  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string }) => Promise<void>;
+  addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number }) => Promise<void>;
+  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string; target_minutes?: number }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;
@@ -75,7 +77,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, refreshTasks, refreshEmployees]);
 
-  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string }) => {
+  // Ref to track notified tasks to avoid spam
+  const notifiedTasks = useRef<Record<string, Set<number>>>({});
+
+  // Reminder Logic
+  useEffect(() => {
+    if (!tasks.length) return;
+
+    const interval = setInterval(() => {
+      tasks.forEach(task => {
+        if (task.status === 'In Progress' && task.target_minutes) {
+          const elapsedMs = getElapsedMs(task.time_sessions);
+          // Also add time since last start if currently running
+          const lastSession = task.time_sessions.find(s => s.end_time === null);
+          let totalElapsed = elapsedMs;
+          if (lastSession) {
+            // getElapsedMs already handles open sessions by using Date.now() if end_time is null?
+            // Let's verify getElapsedMs implementation in utils.ts.
+            // "return sessions.reduce((total, s) => total + ((s.end_time ?? Date.now()) - s.start_time), 0);"
+            // Yes, it does.
+          }
+
+          const elapsedMinutes = totalElapsed / (1000 * 60);
+          const remaining = task.target_minutes - elapsedMinutes;
+
+          // Initialize set if not exists
+          if (!notifiedTasks.current[task.id]) {
+            notifiedTasks.current[task.id] = new Set();
+          }
+
+          const notifiedSet = notifiedTasks.current[task.id];
+
+          // 10 minutes warning (approx range to catch poll)
+          if (remaining <= 10 && remaining > 5 && !notifiedSet.has(10)) {
+            toast({
+              title: "Reminder: 10 Minutes Remaining",
+              description: `Task "${task.title}" is due in 10 minutes.`,
+            });
+            notifiedSet.add(10);
+          }
+
+          // 5 minutes warning
+          if (remaining <= 5 && remaining > 0 && !notifiedSet.has(5)) {
+            toast({
+              title: "Critical Reminder: 5 Minutes Remaining",
+              description: `Task "${task.title}" is due in 5 minutes!`,
+              variant: "destructive",
+            });
+            notifiedSet.add(5);
+          }
+
+          // Time up
+          if (remaining <= 0 && !notifiedSet.has(0)) {
+            toast({
+              title: "Time's Up!",
+              description: `Time limit for task "${task.title}" has been reached.`,
+              variant: "destructive",
+            });
+            notifiedSet.add(0);
+          }
+        }
+      });
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [tasks]);
+
+  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number }) => {
     if (!user) return;
     await supabase.from('tasks').insert({
       user_id: user.userId,
@@ -83,6 +151,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: task.description,
       category: task.category,
       date: task.date,
+      target_minutes: task.target_minutes || null,
     });
     await refreshTasks();
   }, [user, refreshTasks]);
