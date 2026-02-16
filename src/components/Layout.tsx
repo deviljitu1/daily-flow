@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink as RouterNavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, Clock, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Clock, Menu, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -15,97 +18,123 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const navItems =
-    user?.role === 'admin'
-      ? [
-          { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-          { to: '/employees', icon: Users, label: 'Employees' },
-        ]
-      : [{ to: '/', icon: LayoutDashboard, label: 'Dashboard' }];
+  const navItems = [
+    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    ...(user?.role === 'admin' ? [{ to: '/employees', icon: Users, label: 'Employees' }] : []),
+  ];
 
   const SidebarContent = () => (
-    <>
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <Clock className="h-6 w-6 text-sidebar-primary" />
-          <span className="text-lg font-bold text-sidebar-foreground">WorkTracker</span>
+    <div className="flex flex-col h-full bg-sidebar-background/95 backdrop-blur-xl border-r border-sidebar-border shadow-lg">
+      <div className="p-6">
+        <div className="flex items-center gap-3 px-2">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Clock className="h-6 w-6 text-primary" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-sidebar-foreground">WorkTracker</span>
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            onClick={() => setMobileOpen(false)}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-              )
-            }
+
+      <div className="px-4 py-2">
+        <p className="px-4 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2">Menu</p>
+        <nav className="space-y-1">
+          {navItems.map(item => {
+            const isActive = location.pathname === item.to;
+            return (
+              <RouterNavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'group flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className={cn("h-5 w-5", isActive ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground")} />
+                  {item.label}
+                </div>
+                {isActive && <ChevronRight className="h-4 w-4 opacity-50" />}
+              </RouterNavLink>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="mt-auto p-4 m-2">
+        <div className="bg-sidebar-accent/50 rounded-2xl p-4 border border-sidebar-border/50">
+          <div className="flex items-center gap-3 mb-4">
+            <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                {user?.name?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate text-sidebar-foreground">{user?.name}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate capitalize">{user?.role}</p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20 border-sidebar-border/60"
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 mb-3 px-3">
-          <div className="h-8 w-8 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-medium shrink-0">
-            {user?.name.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate text-sidebar-foreground">{user?.name}</p>
-            <p className="text-xs text-sidebar-foreground/50 truncate">{user?.employeeType}</p>
-          </div>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign out
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </Button>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 bg-sidebar flex-col shrink-0">
+      <aside className="hidden md:flex w-72 flex-col shrink-0 z-20">
         <SidebarContent />
       </aside>
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-foreground/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar flex flex-col">
+        <div className="fixed inset-0 z-50 md:hidden bg-background/80 backdrop-blur-sm animate-in fade-in">
+          <div className="fixed inset-y-0 left-0 w-72 h-full shadow-2xl animate-in slide-in-from-left duration-300">
             <SidebarContent />
-          </aside>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-[-3rem] text-foreground bg-background/50 rounded-full"
+              onClick={() => setMobileOpen(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Mobile header */}
-        <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b bg-card">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b bg-card/80 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
             <span className="font-bold">WorkTracker</span>
           </div>
+          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
+            <Menu className="h-6 w-6" />
+          </Button>
         </header>
 
-        <main className="flex-1 overflow-auto">
-          <Outlet />
+        <main className="flex-1 overflow-auto bg-muted/20 relative">
+          {/* Subtle background pattern for main content */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+          <div className="relative p-6 md:p-8 max-w-7xl mx-auto w-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

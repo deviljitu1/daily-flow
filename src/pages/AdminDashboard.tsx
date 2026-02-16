@@ -39,88 +39,112 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Overview of all employee activity</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-2">Welcome back. Here's what's happening today.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard icon={Users} label="Active Employees" value={activeEmployees.length} />
         <StatCard icon={ClipboardList} label="Tasks Today" value={todayTasks.length} />
         <StatCard icon={CheckCircle} label="Completed Today" value={completedToday} />
         <StatCard icon={Clock} label="Total Hours Today" value={formatDuration(totalTimeToday)} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Date</Label>
-          <Input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+      <div className="glass-card rounded-xl p-6 border-none space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Filters</h2>
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Employee</Label>
-          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Employees" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employees</SelectItem>
-              {employees
-                .filter(e => e.role === 'employee')
-                .map(e => (
-                  <SelectItem key={e.user_id} value={e.user_id}>
-                    {e.name}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</Label>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              className="bg-background/50 border-input/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Employee</Label>
+            <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+              <SelectTrigger className="bg-background/50 border-input/50">
+                <SelectValue placeholder="All Employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {employees
+                  .filter(e => e.role === 'employee')
+                  .map(e => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      {e.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Department</Label>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="bg-background/50 border-input/50">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {EMPLOYEE_TYPES.map(t => (
+                  <SelectItem key={t} value={t}>
+                    {t}
                   </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Employee Type</Label>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {EMPLOYEE_TYPES.map(t => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Not Started">Not Started</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="Finished">Finished</SelectItem>
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-background/50 border-input/50">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Not Started">Not Started</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="Finished">Finished</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Tasks ({filteredTasks.length})</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">Tasks <span className="text-muted-foreground text-base font-normal ml-2">({filteredTasks.length})</span></h2>
+        </div>
+
         {filteredTasks.length === 0 ? (
-          <p className="text-muted-foreground py-12 text-center">No tasks match the current filters.</p>
+          <div className="glass-card rounded-xl p-12 flex flex-col items-center justify-center text-center space-y-3 border-dashed border-2">
+            <div className="p-4 bg-muted/50 rounded-full">
+              <ClipboardList className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <p className="text-lg font-medium text-muted-foreground">No tasks found</p>
+            <p className="text-sm text-muted-foreground/60 w-full max-w-xs">
+              Try adjusting your filters to see more results.
+            </p>
+          </div>
         ) : (
-          filteredTasks.map(task => (
-            <TaskCard key={task.id} task={task} showUser={getEmployeeName(task.user_id)} readOnly />
-          ))
+          <div className="grid gap-4">
+            {filteredTasks.map(task => (
+              <TaskCard key={task.id} task={task} showUser={getEmployeeName(task.user_id)} readOnly />
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
+import { Clock, ArrowRight, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ const Login = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
@@ -62,87 +62,138 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary-foreground rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-primary-foreground rounded-full blur-3xl" />
-        </div>
-        <div className="relative text-primary-foreground max-w-md">
-          <Clock className="h-16 w-16 mb-8 opacity-90" />
-          <h1 className="text-4xl font-bold mb-4">WorkTracker</h1>
-          <p className="text-lg opacity-80 leading-relaxed">
-            Track your daily work, manage time efficiently, and stay productive. Know who worked on what, when, and for how long.
+    <div className="min-h-screen flex w-full">
+      {/* Left branding panel with animated gradient */}
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-primary/5">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/5 animate-gradient-xy" />
+
+        {/* Animated Orbs */}
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/30 rounded-full blur-[100px] opacity-70 animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] opacity-70 animate-pulse delay-700" />
+
+        <div className="relative z-10 flex flex-col justify-center px-20 text-foreground h-full">
+          <div className="mb-8 p-4 bg-white/10 w-fit rounded-2xl backdrop-blur-md border border-white/20 shadow-xl">
+            <Clock className="h-12 w-12 text-primary" />
+          </div>
+          <h1 className="text-6xl font-bold mb-6 tracking-tight leading-tight">
+            Seamlessly <br />
+            <span className="text-primary">Track Time.</span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-lg leading-relaxed">
+            Elevate your productivity with WorkTracker. effortless time management for modern teams.
           </p>
         </div>
+
+        {/* Decorative Grid */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
       </div>
 
       {/* Right login panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <Clock className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">WorkTracker</span>
+      <div className="flex-1 flex items-center justify-center p-8 bg-background relative">
+        <div className="w-full max-w-[420px] space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="flex flex-col space-y-2 text-center lg:text-left">
+            <div className="lg:hidden flex justify-center mb-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Clock className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
+            <p className="text-muted-foreground">Sign in to your account to continue</p>
           </div>
 
-          <h2 className="text-2xl font-bold mb-1">Welcome back</h2>
-          <p className="text-muted-foreground mb-8">Sign in to your account</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>
+              <div className="p-4 rounded-lg bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 animate-in fade-in zoom-in-95">
+                {error}
+              </div>
             )}
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  required
+                  className="h-12 bg-muted/30 border-input/60 focus:bg-background transition-all duration-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <a href="#" className="text-sm font-medium text-primary hover:underline underline-offset-4">Forgot password?</a>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="h-12 bg-muted/30 border-input/60 focus:bg-background transition-all duration-300"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loginLoading}>
-              {loginLoading ? 'Signing in...' : 'Sign in'}
+
+            <Button
+              type="submit"
+              className="w-full h-12 text-base font-medium shadow-lg hover:shadow-primary/25 transition-all duration-300"
+              disabled={loginLoading}
+            >
+              {loginLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Signing in...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  Sign in <ArrowRight className="h-4 w-4" />
+                </div>
+              )}
             </Button>
           </form>
 
-          <Card className="mt-8 p-4 bg-muted border-0">
-            <p className="font-medium text-sm mb-2">Demo Credentials</p>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">Admin:</span> admin@demo.com / admin123
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Employee:</span> employee@demo.com / employee123
-              </p>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border/60" />
             </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Demo Access</span>
+            </div>
+          </div>
+
+          <Card className="glass-card border-none p-6 space-y-4">
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <span className="font-medium text-foreground">Admin:</span>
+                <span className="font-mono bg-muted px-2 py-0.5 rounded">admin@demo.com</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <span className="font-medium text-foreground">Employee:</span>
+                <span className="font-mono bg-muted px-2 py-0.5 rounded">employee@demo.com</span>
+              </div>
+            </div>
+
             {!seedDone && (
               <Button
                 variant="outline"
-                size="sm"
-                className="mt-3 w-full"
+                className="w-full h-10 border-dashed hover:border-primary hover:text-primary transition-all"
                 onClick={handleSeedDemo}
                 disabled={seeding}
               >
-                {seeding ? 'Seeding demo data...' : 'Seed Demo Data'}
+                {seeding ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Seeding...
+                  </div>
+                ) : 'Seed Demo Data'}
               </Button>
             )}
             {seedDone && (
-              <p className="text-xs text-status-done mt-2 font-medium">✓ Demo data seeded! You can now log in.</p>
+              <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400 font-medium bg-green-500/10 p-2 rounded-lg">
+                <span>✓</span> Demo data ready
+              </div>
             )}
           </Card>
         </div>

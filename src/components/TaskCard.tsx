@@ -5,12 +5,12 @@ import { formatTimer, formatDuration, getElapsedMs, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, CheckCircle, Clock } from 'lucide-react';
+import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag } from 'lucide-react';
 
 const statusConfig: Record<TaskStatus, { className: string; label: string }> = {
-  'Not Started': { className: 'bg-status-idle/15 text-status-idle border-status-idle/30', label: 'Not Started' },
-  'In Progress': { className: 'bg-status-active/15 text-status-active border-status-active/30', label: 'In Progress' },
-  Finished: { className: 'bg-status-done/15 text-status-done border-status-done/30', label: 'Finished' },
+  'Not Started': { className: 'bg-muted text-muted-foreground border-transparent', label: 'Not Started' },
+  'In Progress': { className: 'bg-primary/10 text-primary border-primary/20 animate-pulse', label: 'In Progress' },
+  Finished: { className: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Finished' },
 };
 
 interface TaskCardProps {
@@ -28,13 +28,17 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
 
   useEffect(() => {
     setElapsed(getElapsedMs(task.time_sessions));
+    // If we're just rendering and it's running, we want to update the timer
+    // but only if it matches client-side calculation to avoid jitter
     if (isRunning) {
-      const iv = setInterval(() => setElapsed(getElapsedMs(task.time_sessions)), 1000);
+      const iv = setInterval(() => {
+        setElapsed(prev => prev + 1000);
+      }, 1000);
       return () => clearInterval(iv);
     }
   }, [task.time_sessions, isRunning]);
 
-  const config = statusConfig[task.status];
+  const config = statusConfig[task.status] || statusConfig['Not Started'];
 
   const handleAction = async (fn: (id: string) => Promise<void>) => {
     setActionLoading(true);
@@ -46,67 +50,97 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
   };
 
   return (
-    <Card className="p-4">
-      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="font-semibold text-card-foreground">{task.title}</h3>
-            <Badge variant="outline" className={cn('text-xs border', config.className)}>
+    <Card className={cn(
+      "p-5 transition-all duration-300 border border-border/50 hover:border-primary/20 hover:shadow-lg group relative overflow-hidden",
+      isRunning ? "border-primary/40 bg-primary/5 shadow-md shadow-primary/5" : "bg-card"
+    )}>
+      {/* Active Indicator Strip */}
+      {isRunning && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-pulse" />
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pl-2">
+        <div className="flex-1 min-w-0 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className={cn('font-medium px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider', config.className)}>
               {config.label}
             </Badge>
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="font-normal text-[10px] bg-secondary/50 text-secondary-foreground">
+              <Tag className="h-3 w-3 mr-1 opacity-70" />
               {task.category}
             </Badge>
-          </div>
-          {task.description && (
-            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{task.description}</p>
-          )}
-          {showUser && <p className="text-xs text-muted-foreground">{showUser}</p>}
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 font-mono text-sm min-w-[80px]">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            {isRunning ? (
-              <span className="text-status-active font-semibold">{formatTimer(elapsed)}</span>
-            ) : (
-              <span className="text-muted-foreground">
-                {elapsed > 0 ? (isFinished ? formatDuration(elapsed) : formatTimer(elapsed)) : '00:00:00'}
+            {task.date && (
+              <span className="flex items-center text-[10px] text-muted-foreground">
+                <CalendarDays className="h-3 w-3 mr-1 opacity-70" />
+                {task.date}
               </span>
             )}
           </div>
 
+          <div>
+            <h3 className={cn("font-medium text-lg leading-tight group-hover:text-primary transition-colors", isFinished && "text-muted-foreground line-through decoration-border")}>
+              {task.title}
+            </h3>
+            {task.description && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed opacity-90">{task.description}</p>
+            )}
+            {showUser && (
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                  {showUser.charAt(0)}
+                </div>
+                <p className="text-xs text-muted-foreground font-medium">{showUser}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-4 min-w-[120px]">
+          <div className={cn(
+            "flex items-center gap-2 font-mono text-sm px-3 py-1.5 rounded-lg border transition-colors",
+            isRunning ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/30 border-border text-muted-foreground"
+          )}>
+            <Clock className={cn("h-4 w-4", isRunning && "animate-spin-slow")} />
+            <span className="font-bold tracking-wide">
+              {isRunning ? formatTimer(elapsed) : (elapsed > 0 ? formatDuration(elapsed) : '00:00:00')}
+            </span>
+          </div>
+
           {!isFinished && !readOnly && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {isRunning ? (
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="outline"
                   onClick={() => handleAction(pauseTimer)}
                   disabled={actionLoading}
-                  className="h-8 w-8"
+                  className="h-9 w-9 p-0 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
                 >
-                  <Pause className="h-4 w-4" />
+                  <Pause className="h-4 w-4 fill-current" />
+                  <span className="sr-only">Pause</span>
                 </Button>
               ) : (
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="outline"
                   onClick={() => handleAction(startTimer)}
                   disabled={actionLoading}
-                  className="h-8 w-8"
+                  className="h-9 w-9 p-0 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
                 >
-                  <Play className="h-4 w-4" />
+                  <Play className="h-4 w-4 fill-current ml-0.5" />
+                  <span className="sr-only">Start</span>
                 </Button>
               )}
+
               <Button
-                size="icon"
-                variant="outline"
+                size="sm"
+                variant="ghost"
                 onClick={() => handleAction(finishTask)}
                 disabled={actionLoading}
-                className="h-8 w-8 text-status-done hover:bg-status-done/10"
+                className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-all"
               >
-                <CheckCircle className="h-4 w-4" />
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="sr-only">Finish</span>
               </Button>
             </div>
           )}

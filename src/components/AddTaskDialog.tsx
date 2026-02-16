@@ -45,43 +45,45 @@ const AddTaskDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]">
           <Plus className="h-4 w-4 mr-2" />
           Add Task
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle className="text-xl">Create New Task</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Task Title</Label>
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-sm font-medium">Task Title</Label>
             <Input
               id="title"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Enter task title"
+              placeholder="e.g. Implement user authentication"
               required
               maxLength={200}
+              className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors"
             />
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="What will you work on?"
+              placeholder="Add details about what you'll be working on..."
               maxLength={1000}
               rows={3}
+              className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Category</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -93,12 +95,18 @@ const AddTaskDialog = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-sm font-medium">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors"
+              />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
+          <Button type="submit" className="w-full font-semibold shadow-md" disabled={submitting}>
             {submitting ? 'Creating...' : 'Create Task'}
           </Button>
         </form>
