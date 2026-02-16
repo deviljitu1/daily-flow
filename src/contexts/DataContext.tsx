@@ -8,7 +8,7 @@ interface DataContextType {
   tasks: TaskWithSessions[];
   loading: boolean;
   addTask: (task: { title: string; description: string; category: string; date: string }) => Promise<void>;
-  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string }) => Promise<void>;
+  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;

@@ -8,6 +8,7 @@ import { Users, ClipboardList, CheckCircle, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import DashboardCharts from '@/components/DashboardCharts';
 
 const AdminDashboard = () => {
   const { employees, tasks, loading } = useData();
@@ -56,6 +57,10 @@ const AdminDashboard = () => {
         <StatCard icon={ClipboardList} label="Tasks Today" value={todayTasks.length} />
         <StatCard icon={CheckCircle} label="Completed Today" value={completedToday} />
         <StatCard icon={Clock} label="Total Hours Today" value={formatDuration(totalTimeToday)} />
+      </div>
+
+      <div className="mb-8">
+        <DashboardCharts tasks={filteredTasks} />
       </div>
 
       <div className="glass-card rounded-xl p-6 border-none space-y-6">

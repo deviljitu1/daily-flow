@@ -5,8 +5,8 @@ import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import StatCard from '@/components/StatCard';
 import { ClipboardList, CheckCircle2, Clock, CalendarRange } from 'lucide-react';
-import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DashboardCharts from '@/components/DashboardCharts';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -48,7 +48,7 @@ const EmployeeDashboard = () => {
           </h1>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             <CalendarRange className="h-4 w-4" />
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <AddTaskDialog />
@@ -59,6 +59,10 @@ const EmployeeDashboard = () => {
         <StatCard icon={CheckCircle2} label="Completed" value={completedToday} />
         <StatCard icon={Clock} label="Time Today" value={formatDuration(totalTimeToday)} />
         <StatCard icon={Clock} label="This Week" value={formatDuration(weeklyTime)} />
+      </div>
+
+      <div className="mb-8">
+        <DashboardCharts tasks={employeeTasks} />
       </div>
 
       <div className="glass-card rounded-xl p-6 border-none">
