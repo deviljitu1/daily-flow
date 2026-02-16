@@ -82,23 +82,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Reminder Logic
   useEffect(() => {
-    if (!tasks.length) return;
+    // Ensure tasks exist and is iterable
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) return;
 
     const interval = setInterval(() => {
       tasks.forEach(task => {
-        if (task.status === 'In Progress' && task.target_minutes) {
-          const elapsedMs = getElapsedMs(task.time_sessions);
-          // Also add time since last start if currently running
-          const lastSession = task.time_sessions.find(s => s.end_time === null);
-          let totalElapsed = elapsedMs;
-          if (lastSession) {
-            // getElapsedMs already handles open sessions by using Date.now() if end_time is null?
-            // Let's verify getElapsedMs implementation in utils.ts.
-            // "return sessions.reduce((total, s) => total + ((s.end_time ?? Date.now()) - s.start_time), 0);"
-            // Yes, it does.
-          }
+        // Defensive checks: ensure task exists, has status 'In Progress', has target_minutes, and time_sessions
+        if (task && task.status === 'In Progress' && task.target_minutes && task.time_sessions) {
+          const sessions = task.time_sessions || [];
+          const elapsedMs = getElapsedMs(sessions);
 
-          const elapsedMinutes = totalElapsed / (1000 * 60);
+          const elapsedMinutes = elapsedMs / (1000 * 60);
           const remaining = task.target_minutes - elapsedMinutes;
 
           // Initialize set if not exists
@@ -108,7 +102,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const notifiedSet = notifiedTasks.current[task.id];
 
-          // 10 minutes warning (approx range to catch poll)
+          // 10 minutes warning
           if (remaining <= 10 && remaining > 5 && !notifiedSet.has(10)) {
             toast({
               title: "Reminder: 10 Minutes Remaining",
@@ -210,12 +204,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.from('time_sessions').update({ end_time: Date.now() }).eq('id', session.id);
     }
 
-    // Mark finished
     await supabase.from('tasks').update({ status: 'Finished' }).eq('id', taskId);
     await refreshTasks();
   }, [tasks, refreshTasks]);
 
-  /* Existing logic */
   const toggleEmployeeActive = async (profileId: string, isActive: boolean) => {
     if (!user || user.role !== 'admin') return;
     const { error } = await supabase
@@ -224,8 +216,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .eq('id', profileId);
 
     if (error) {
-      console.error('Error toggling employee active status:', error);
-      throw error;
+      toast({
+        title: "Error",
+        description: "Failed to update employee status.",
+        variant: "destructive"
+      });
+      return;
     }
     await refreshEmployees();
   };
@@ -240,29 +236,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (error) {
       console.error('Error updating employee:', error);
-      throw error;
+      toast({ title: "Error", description: "Failed to update employee.", variant: "destructive" });
     }
     await refreshEmployees();
   };
 
   const deleteEmployee = async (id: string) => {
     if (!user || user.role !== 'admin') return;
-    // Note: Due to foreign key constraints, we might want to soft delete usually.
-    // But user asked for delete. Let's try hard delete first, but if it fails (due to tasks), we might need to handle it.
-    // For now, let's assume we want to delete profile.
-    // Ideally we should delete tasks first or cascade.
-    // But usually 'profiles' are linked to 'auth.users'.
-    // Deleting from 'profiles' might not be enough if we want to delete the user login too.
-    // However, for this context, let's stick to profile deletion.
-
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', id);
-
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) {
-      console.error('Error deleting employee:', error);
-      throw error;
+      console.error("Delete failed", error);
+      toast({
+        title: "Cannot Delete Employee",
+        description: "Ensure the employee has no associated tasks or data before deleting.",
+        variant: "destructive"
+      });
     }
     await refreshEmployees();
   };
