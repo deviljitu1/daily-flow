@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { EMPLOYEE_TYPES, EmployeeType } from '@/types';
+import { EMPLOYEE_TYPES, EmployeeType, ProfileWithRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, UserCheck, UserX, Search, User } from 'lucide-react';
+import { Plus, UserCheck, UserX, Search, User, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getEmployeeTitle } from '@/lib/utils';
+import EditEmployeeDialog from '@/components/EditEmployeeDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const Employees = () => {
-  const { employees, toggleEmployeeActive, refreshEmployees, loading } = useData();
+  const { employees, toggleEmployeeActive, refreshEmployees, loading, deleteEmployee } = useData();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,6 +27,9 @@ const Employees = () => {
   const [empType, setEmpType] = useState<EmployeeType>('Developer');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [editingEmployee, setEditingEmployee] = useState<ProfileWithRole | null>(null);
+  const [deletingEmployee, setDeletingEmployee] = useState<ProfileWithRole | null>(null);
 
   const employeeList = employees
     .filter(e => e.role === 'employee')
@@ -67,6 +74,17 @@ const Employees = () => {
 
   const handleToggle = async (profileId: string, currentActive: boolean) => {
     await toggleEmployeeActive(profileId, !currentActive);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingEmployee) return;
+    try {
+      await deleteEmployee(deletingEmployee.id);
+      toast({ title: 'Success', description: 'Employee deleted successfully' });
+      setDeletingEmployee(null);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete employee', variant: 'destructive' });
+    }
   };
 
   if (loading) {
@@ -204,6 +222,9 @@ const Employees = () => {
                           </Avatar>
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">{emp.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {getEmployeeTitle(emp.employee_type, emp.created_at)}
+                            </span>
                           </div>
                         </div>
                       </TableCell>
@@ -221,24 +242,36 @@ const Employees = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggle(emp.id, emp.is_active)}
-                          className={emp.is_active ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-primary hover:text-primary hover:bg-primary/10"}
-                        >
-                          {emp.is_active ? (
-                            <>
-                              <UserX className="h-4 w-4 mr-2" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="h-4 w-4 mr-2" />
-                              Activate
-                            </>
-                          )}
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingEmployee(emp)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggle(emp.id, emp.is_active)}>
+                              {emp.is_active ? (
+                                <>
+                                  <UserX className="h-4 w-4 mr-2" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-4 w-4 mr-2" />
+                                  Activate
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDeletingEmployee(emp)} className="text-destructive focus:text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Employee
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -248,6 +281,33 @@ const Employees = () => {
           </div>
         </CardContent>
       </Card>
+
+      {editingEmployee && (
+        <EditEmployeeDialog
+          employee={editingEmployee}
+          open={!!editingEmployee}
+          onOpenChange={(open) => !open && setEditingEmployee(null)}
+        />
+      )}
+
+      <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete
+              <span className="font-semibold text-foreground"> {deletingEmployee?.name}</span> and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete Employee
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };

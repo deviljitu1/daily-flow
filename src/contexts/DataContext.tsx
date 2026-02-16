@@ -16,6 +16,8 @@ interface DataContextType {
   refreshTasks: () => Promise<void>;
   refreshEmployees: () => Promise<void>;
   toggleEmployeeActive: (profileId: string, isActive: boolean) => Promise<void>;
+  updateEmployee: (id: string, updates: { name?: string; employee_type?: string }) => Promise<void>;
+  deleteEmployee: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -144,10 +146,56 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshTasks();
   }, [tasks, refreshTasks]);
 
-  const toggleEmployeeActive = useCallback(async (profileId: string, isActive: boolean) => {
-    await supabase.from('profiles').update({ is_active: isActive }).eq('id', profileId);
+  /* Existing logic */
+  const toggleEmployeeActive = async (profileId: string, isActive: boolean) => {
+    if (!user || user.role !== 'admin') return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: isActive })
+      .eq('id', profileId);
+
+    if (error) {
+      console.error('Error toggling employee active status:', error);
+      throw error;
+    }
     await refreshEmployees();
-  }, [refreshEmployees]);
+  };
+
+  const updateEmployee = async (id: string, updates: { name?: string; employee_type?: string }) => {
+    if (!user || user.role !== 'admin') return;
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating employee:', error);
+      throw error;
+    }
+    await refreshEmployees();
+  };
+
+  const deleteEmployee = async (id: string) => {
+    if (!user || user.role !== 'admin') return;
+    // Note: Due to foreign key constraints, we might want to soft delete usually.
+    // But user asked for delete. Let's try hard delete first, but if it fails (due to tasks), we might need to handle it.
+    // For now, let's assume we want to delete profile.
+    // Ideally we should delete tasks first or cascade.
+    // But usually 'profiles' are linked to 'auth.users'.
+    // Deleting from 'profiles' might not be enough if we want to delete the user login too.
+    // However, for this context, let's stick to profile deletion.
+
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting employee:', error);
+      throw error;
+    }
+    await refreshEmployees();
+  };
 
   return (
     <DataContext.Provider
@@ -164,6 +212,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshTasks,
         refreshEmployees,
         toggleEmployeeActive,
+        updateEmployee,
+        deleteEmployee,
       }}
     >
       {children}

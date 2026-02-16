@@ -47,3 +47,37 @@ export function getGreeting(): string {
   if (h < 17) return 'afternoon';
   return 'evening';
 }
+
+export function formatJoinDate(dateStr?: string): string {
+  if (!dateStr) return 'Unknown';
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+}
+
+export function getTenure(dateStr?: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 30) return `${diffDays} days`;
+  const months = Math.floor(diffDays / 30);
+  if (months < 12) return `${months} months`;
+  const years = Math.floor(months / 12);
+  return `${years} years`;
+}
+
+export function getEmployeeTitle(role: string, joinedAt?: string): string {
+  if (!joinedAt) return role;
+  const date = new Date(joinedAt);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Example rule: > 1 year (365 days) becomes Senior
+  if (diffDays > 365) {
+    return `Senior ${role}`;
+  }
+  return role;
+}
