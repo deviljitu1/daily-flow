@@ -19,12 +19,22 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
     const { updateEmployee } = useData();
     const [name, setName] = useState(employee.name);
     const [empType, setEmpType] = useState<EmployeeType>(employee.employee_type);
+    const [createdDate, setCreatedDate] = useState(() => {
+        // Assuming created_at is date string or timestamp string
+        if (employee.created_at) {
+            return new Date(employee.created_at).toISOString().split('T')[0];
+        }
+        return '';
+    });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (open) {
             setName(employee.name);
             setEmpType(employee.employee_type);
+            if (employee.created_at) {
+                setCreatedDate(new Date(employee.created_at).toISOString().split('T')[0]);
+            }
         }
     }, [open, employee]);
 
@@ -36,6 +46,7 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
             await updateEmployee(employee.id, {
                 name: name.trim(),
                 employee_type: empType,
+                created_at: createdDate ? new Date(createdDate).toISOString() : employee.created_at,
             });
             onOpenChange(false);
         } finally {
@@ -43,9 +54,9 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
         }
     };
 
-    const calculatedTitle = getEmployeeTitle(empType, employee.created_at);
-    const tenure = getTenure(employee.created_at);
-    const joinDate = formatJoinDate(employee.created_at);
+    const calculatedTitle = getEmployeeTitle(empType, createdDate); // Use local state for preview
+    const tenure = getTenure(createdDate); // Use local state for preview
+    const joinDate = formatJoinDate(createdDate); // Use local state for preview
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -99,6 +110,21 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
                         </Select>
                         <p className="text-xs text-muted-foreground mt-1">
                             Changing position will update their calculated title.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-date">Joined Date</Label>
+                        <Input
+                            id="edit-date"
+                            type="date"
+                            value={createdDate}
+                            onChange={e => setCreatedDate(e.target.value)}
+                            required
+                            className="bg-background/50"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Used to calculate tenure and seniority (e.g. Senior title).
                         </p>
                     </div>
 

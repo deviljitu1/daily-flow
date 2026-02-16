@@ -16,7 +16,7 @@ interface DataContextType {
   refreshTasks: () => Promise<void>;
   refreshEmployees: () => Promise<void>;
   toggleEmployeeActive: (profileId: string, isActive: boolean) => Promise<void>;
-  updateEmployee: (id: string, updates: { name?: string; employee_type?: string }) => Promise<void>;
+  updateEmployee: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
 }
 
@@ -161,7 +161,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshEmployees();
   };
 
-  const updateEmployee = async (id: string, updates: { name?: string; employee_type?: string }) => {
+  /* New updateEmployee function */
+  const updateEmployee = async (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => {
     if (!user || user.role !== 'admin') return;
     const { error } = await supabase
       .from('profiles')
