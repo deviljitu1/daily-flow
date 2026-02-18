@@ -145,14 +145,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.from('tasks').insert({
       user_id: targetUserId,
       title: task.title,
-      description: task.description,
+      description: task.description || '',
       category: task.category,
       date: task.date,
       target_minutes: task.target_minutes || null,
     });
 
     if (error) {
-      console.error('Error adding task:', error);
+      console.error('Error adding task:', JSON.stringify(error, null, 2));
       throw error;
     }
 
