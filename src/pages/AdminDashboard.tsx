@@ -3,6 +3,7 @@ import { useData } from '@/contexts/DataContext';
 import { todayStr, getElapsedMs, formatDuration, getGreeting } from '@/lib/utils';
 import { EMPLOYEE_TYPES, TaskStatus } from '@/types';
 import TaskCard from '@/components/TaskCard';
+import AddTaskDialog from '@/components/AddTaskDialog';
 import StatCard from '@/components/StatCard';
 import { Users, ClipboardList, CheckCircle, Clock, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -95,10 +96,13 @@ const AdminDashboard = () => {
             </span>
           </p>
         </div>
-        <Button onClick={downloadCSV} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <AddTaskDialog />
+          <Button onClick={downloadCSV} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
