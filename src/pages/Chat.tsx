@@ -79,14 +79,8 @@ const Chat = () => {
                     table: 'messages',
                 },
                 (payload) => {
-                    // Check if the new message is relevant to current view
-                    const newMessage = payload.new as Message;
-                    if (
-                        (selectedUser && (newMessage.sender_id === selectedUser || newMessage.receiver_id === selectedUser)) ||
-                        (!selectedUser && !newMessage.receiver_id)
-                    ) {
-                        fetchMessages();
-                    }
+                    console.log('Realtime fetch triggered by:', payload);
+                    fetchMessages();
                 }
             )
             .subscribe();
