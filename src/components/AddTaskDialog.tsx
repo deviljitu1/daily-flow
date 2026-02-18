@@ -139,7 +139,7 @@ const AddTaskDialog = () => {
               <p className="text-xs text-muted-foreground">Optional. You will be reminded when time is almost up.</p>
             </div>
 
-            {user?.role === 'admin' && (
+            {user && user.role === 'admin' && (
               <div className="col-span-2 space-y-2">
                 <Label className="text-sm font-medium">Assign To (Optional)</Label>
                 <Select value={assignedTo} onValueChange={setAssignedTo}>
