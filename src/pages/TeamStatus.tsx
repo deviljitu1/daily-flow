@@ -13,6 +13,7 @@ interface TeamMemberActivity {
     role: string;
     is_active: boolean;
     current_task_title: string | null;
+    task_description: string | null;
     task_status: string | null;
 }
 
@@ -145,9 +146,14 @@ const TeamStatus = () => {
                             {member.current_task_title ? (
                                 <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-muted/50">
                                     <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Working on</p>
-                                    <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title}>
+                                    <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title || ''}>
                                         {member.current_task_title}
                                     </p>
+                                    {member.task_description && (
+                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={member.task_description}>
+                                            {member.task_description}
+                                        </p>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="mt-2 p-3 bg-transparent rounded-lg border border-dashed border-muted">
