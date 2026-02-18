@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { getGreeting } from '@/lib/utils';
 import { Clock, Users, Activity, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +28,7 @@ const TeamStatus = () => {
     const fetchTeamActivity = async () => {
         try {
             // Use the secure RPC function created in SQL
+            // @ts-ignore
             const { data, error: fetchError } = await supabase.rpc('get_team_activity');
             if (fetchError) {
                 console.error('Error fetching team activity:', fetchError);
@@ -91,6 +91,7 @@ const TeamStatus = () => {
     );
 
     // Idle: No active task, but has pending work (or just no work at all if not finished)
+    // Basically everyone else who isn't working and isn't finished
     const idleMembers = teamActivity.filter(m =>
         !m.current_task_title &&
         !finishedMembers.includes(m)
@@ -224,106 +225,47 @@ const TeamStatus = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {teamActivity.map((member) => (
-                    <Card key={member.user_id} className={`glass-card border-l-4 ${member.current_task_title ? 'border-l-green-500' : 'border-l-muted'} hover:scale-[1.02] transition-transform duration-200`}>
-                        <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                            <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`} />
-                                <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                                    {member.name.charAt(0)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                                    {member.name}
-                                    {user?.userId === member.user_id && (
-                                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/20 text-primary bg-primary/5">
-                                            You
-                                        </Badge>
-                                    )}
-                                </CardTitle>
-                                <CardDescription className="text-xs uppercase font-medium text-muted-foreground">
-                                    {member.role || 'Employee'}
-                                </CardDescription>
-                            </div>
-                            {member.current_task_title ? (
-                                <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
-                                    Active
-                                </Badge>
-                            ) : (
-                                <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                                    Idle
-                                </Badge>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            {member.current_task_title ? (
-                                <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Active Work</p>
-                                    <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title || ''}>
-                                        {member.current_task_title}
-                                    </p>
-                                    {member.task_description && (
-                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={member.task_description}>
-                                            {member.task_description}
-                                        </p>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="mt-2 p-3 bg-transparent rounded-lg border border-dashed border-muted">
-                                    <p className="text-sm text-muted-foreground italic text-center">Not currently working on a task</p>
-                                </div>
-                            )}
+            {/* 1. Working Now Section */}
+            {workingMembers.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                        <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                        <h2 className="text-xl font-semibold">Working Now</h2>
+                        <Badge variant="secondary" className="ml-auto">{workingMembers.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {workingMembers.map(renderMemberCard)}
+                    </div>
+                </div>
+            )}
 
-                            {/* Progress Work (Paused) */}
-                            {member.progress_tasks && member.progress_tasks.length > 0 && (
-                                <div className="mt-4">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Progress Work</p>
-                                    <ul className="space-y-1">
-                                        {member.progress_tasks.map((t, idx) => (
-                                            <li key={idx} className="text-sm flex items-start gap-2">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-                                                <span className="opacity-90">{t.title}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+            {/* 2. Idle / Paused Section */}
+            {idleMembers.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                        <div className="h-3 w-3 rounded-full bg-orange-400" />
+                        <h2 className="text-xl font-semibold">Idle / Paused</h2>
+                        <Badge variant="secondary" className="ml-auto">{idleMembers.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {idleMembers.map(renderMemberCard)}
+                    </div>
+                </div>
+            )}
 
-                            {/* Remaining Work (Todo) */}
-                            {member.todo_tasks && member.todo_tasks.length > 0 && (
-                                <div className="mt-4">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Remaining Work</p>
-                                    <ul className="space-y-1">
-                                        {member.todo_tasks.map((t, idx) => (
-                                            <li key={idx} className="text-sm flex items-start gap-2">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
-                                                <span className="opacity-90">{t.title}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {/* Finished Work */}
-                            {member.completed_tasks && member.completed_tasks.length > 0 && (
-                                <div className="mt-4">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Finished Work</p>
-                                    <ul className="space-y-1">
-                                        {member.completed_tasks.map((t, idx) => (
-                                            <li key={idx} className="text-sm flex items-start gap-2 text-muted-foreground">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
-                                                <span className="line-through opacity-70">{t.title}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            {/* 3. Finished Section */}
+            {finishedMembers.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                        <div className="h-3 w-3 rounded-full bg-blue-500" />
+                        <h2 className="text-xl font-semibold text-blue-600">Finished for the Day</h2>
+                        <Badge variant="secondary" className="ml-auto">{finishedMembers.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {finishedMembers.map(renderMemberCard)}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
