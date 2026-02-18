@@ -141,6 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Time up
           if (remaining <= 0 && !notifiedSet.has(0)) {
+            console.log("Playing Time's Up sound");
             new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
             toast({
               title: "Time's Up!",
@@ -190,6 +191,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshTasks]);
 
   const startTimer = useCallback(async (taskId: string) => {
+    // Attempt to unlock audio context immediately on user interaction
+    try {
+      const unlockAudio = new Audio('/soundreality-notification-9-158194.mp3');
+      unlockAudio.volume = 0; // Mute so user doesn't hear it
+      unlockAudio.play().catch(e => console.log('Audio unlock failed:', e));
+    } catch (e) {
+      // Ignore errors
+    }
+
     if (!user) return;
 
     // Close any open sessions for other tasks of this user
