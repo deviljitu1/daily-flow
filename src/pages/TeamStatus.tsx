@@ -97,104 +97,113 @@ const TeamStatus = () => {
         !finishedMembers.includes(m)
     );
 
-    const renderMemberCard = (member: TeamMemberActivity) => (
-        <Card key={member.user_id} className={`glass-card border-l-4 ${member.current_task_title ? 'border-l-green-500' : 'border-l-muted'} hover:scale-[1.02] transition-transform duration-200`}>
-            <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        {member.name.charAt(0)}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                        {member.name}
-                        {user?.userId === member.user_id && (
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/20 text-primary bg-primary/5">
-                                You
-                            </Badge>
-                        )}
-                    </CardTitle>
-                    <CardDescription className="text-xs uppercase font-medium text-muted-foreground">
-                        {member.role || 'Employee'}
-                    </CardDescription>
-                </div>
-                {member.current_task_title ? (
-                    <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
-                        Active
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                        Idle
-                    </Badge>
-                )}
-            </CardHeader>
-            <CardContent>
-                {member.current_task_title ? (
-                    <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-muted/50">
-                        <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Active Work</p>
-                        <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title || ''}>
-                            {member.current_task_title}
-                        </p>
-                        {member.task_description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={member.task_description}>
-                                {member.task_description}
+    const renderMemberCard = (member: TeamMemberActivity) => {
+        const isFinished = !member.current_task_title &&
+            (!member.todo_tasks || member.todo_tasks.length === 0) &&
+            (!member.progress_tasks || member.progress_tasks.length === 0) &&
+            (member.completed_tasks && member.completed_tasks.length > 0);
+
+        return (
+            <Card key={member.user_id} className={`glass-card border-l-4 ${member.current_task_title ? 'border-l-green-500' : 'border-l-muted'} hover:scale-[1.02] transition-transform duration-200`}>
+                <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                            {member.name.charAt(0)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                            {member.name}
+                            {user?.userId === member.user_id && (
+                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/20 text-primary bg-primary/5">
+                                    You
+                                </Badge>
+                            )}
+                        </CardTitle>
+                        <CardDescription className="text-xs uppercase font-medium text-muted-foreground">
+                            {member.role || 'Employee'}
+                        </CardDescription>
+                    </div>
+                    {member.current_task_title ? (
+                        <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
+                            Active
+                        </Badge>
+                    ) : (
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                            {isFinished ? 'Finished' : 'Idle'}
+                        </Badge>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    {member.current_task_title ? (
+                        <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-muted/50">
+                            <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Active Work</p>
+                            <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title || ''}>
+                                {member.current_task_title}
                             </p>
-                        )}
-                    </div>
-                ) : (
-                    <div className="mt-2 p-3 bg-transparent rounded-lg border border-dashed border-muted">
-                        <p className="text-sm text-muted-foreground italic text-center">Not currently working on a task</p>
-                    </div>
-                )}
+                            {member.task_description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={member.task_description}>
+                                    {member.task_description}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        !isFinished && (
+                            <div className="mt-2 p-3 bg-transparent rounded-lg border border-dashed border-muted">
+                                <p className="text-sm text-muted-foreground italic text-center">Not currently working on a task</p>
+                            </div>
+                        )
+                    )}
 
-                {/* Progress Work (Paused) */}
-                {member.progress_tasks && member.progress_tasks.length > 0 && (
-                    <div className="mt-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Progress Work</p>
-                        <ul className="space-y-1">
-                            {member.progress_tasks.map((t, idx) => (
-                                <li key={idx} className="text-sm flex items-start gap-2">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-                                    <span className="opacity-90">{t.title}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                    {/* Progress Work (Paused) */}
+                    {member.progress_tasks && member.progress_tasks.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Progress Work</p>
+                            <ul className="space-y-1">
+                                {member.progress_tasks.map((t, idx) => (
+                                    <li key={idx} className="text-sm flex items-start gap-2">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                                        <span className="opacity-90">{t.title}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
-                {/* Remaining Work (Todo) */}
-                {member.todo_tasks && member.todo_tasks.length > 0 && (
-                    <div className="mt-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Remaining Work</p>
-                        <ul className="space-y-1">
-                            {member.todo_tasks.map((t, idx) => (
-                                <li key={idx} className="text-sm flex items-start gap-2">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
-                                    <span className="opacity-90">{t.title}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                    {/* Remaining Work (Todo) */}
+                    {member.todo_tasks && member.todo_tasks.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Remaining Work</p>
+                            <ul className="space-y-1">
+                                {member.todo_tasks.map((t, idx) => (
+                                    <li key={idx} className="text-sm flex items-start gap-2">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
+                                        <span className="opacity-90">{t.title}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
-                {/* Finished Work */}
-                {member.completed_tasks && member.completed_tasks.length > 0 && (
-                    <div className="mt-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Finished Work</p>
-                        <ul className="space-y-1">
-                            {member.completed_tasks.map((t, idx) => (
-                                <li key={idx} className="text-sm flex items-start gap-2 text-muted-foreground">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
-                                    <span className="line-through opacity-70">{t.title}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
+                    {/* Finished Work */}
+                    {member.completed_tasks && member.completed_tasks.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Finished Work</p>
+                            <ul className="space-y-1">
+                                {member.completed_tasks.map((t, idx) => (
+                                    <li key={idx} className="text-sm flex items-start gap-2 text-muted-foreground">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
+                                        <span className="line-through opacity-70">{t.title}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
