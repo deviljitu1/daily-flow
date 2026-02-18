@@ -369,7 +369,7 @@ const Chat = () => {
                                 {emp.is_active && (
                                     <div className="h-2 w-2 rounded-full bg-green-500 ring-2 ring-background absolute bottom-3 left-10" title="Active" />
                                 )}
-                                {unreadCounts[emp.user_id] > 0 && (
+                                {unreadCounts[emp.user_id] > 0 && selectedUser !== emp.user_id && (
                                     <Badge variant="destructive" className="ml-auto rounded-full h-5 min-w-[1.25rem] px-1 flex items-center justify-center text-[10px]">
                                         {unreadCounts[emp.user_id]}
                                     </Badge>
