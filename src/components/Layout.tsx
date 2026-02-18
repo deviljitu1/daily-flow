@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink as RouterNavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Users, LogOut, Clock, Menu, X, ChevronRight, Activity, MessageSquare } from 'lucide-react';
@@ -12,6 +12,33 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Audio Unlocker for Autoplay Policy
+  useEffect(() => {
+    const unlockAudio = () => {
+      const sound = new Audio('/universfield-new-notification-035-485894.mp3');
+      sound.volume = 0;
+      sound.play().then(() => {
+        console.log("Audio Context Unlocked");
+        // Remove listeners once successful
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+      }).catch(e => {
+        console.log("Audio unlock attempt failed:", e);
+      });
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
