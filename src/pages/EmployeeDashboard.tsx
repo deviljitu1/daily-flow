@@ -25,6 +25,7 @@ const EmployeeDashboard = () => {
 
   const todayTasks = employeeTasks.filter(t => t.date === today);
   const ongoingTasks = employeeTasks.filter(t => t.status === 'In Progress');
+  const completedTasks = employeeTasks.filter(t => t.status === 'Finished');
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
   const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
@@ -77,6 +78,7 @@ const EmployeeDashboard = () => {
           <TabsList className="bg-muted/50 p-1 rounded-lg">
             <TabsTrigger value="today" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Today ({todayTasks.length})</TabsTrigger>
             <TabsTrigger value="ongoing" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Ongoing ({ongoingTasks.length})</TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Completed ({completedTasks.length})</TabsTrigger>
             <TabsTrigger value="all" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">All Tasks ({employeeTasks.length})</TabsTrigger>
           </TabsList>
 
@@ -97,6 +99,16 @@ const EmployeeDashboard = () => {
               </div>
             ) : (
               <EmptyState message="No ongoing tasks right now." />
+            )}
+          </TabsContent>
+
+          <TabsContent value="completed" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {hasTasks(completedTasks) ? (
+              <div className="grid gap-4">
+                {completedTasks.map(task => <TaskCard key={task.id} task={task} />)}
+              </div>
+            ) : (
+              <EmptyState message="No completed tasks yet. Keep going!" />
             )}
           </TabsContent>
 

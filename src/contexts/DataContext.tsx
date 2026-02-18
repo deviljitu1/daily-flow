@@ -9,7 +9,7 @@ interface DataContextType {
   employees: ProfileWithRole[];
   tasks: TaskWithSessions[];
   loading: boolean;
-  addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number }) => Promise<void>;
+  addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => Promise<void>;
   updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string; target_minutes?: number }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
@@ -137,10 +137,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [tasks]);
 
-  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number }) => {
+  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => {
     if (!user) return;
     await supabase.from('tasks').insert({
-      user_id: user.userId,
+      user_id: task.user_id || user.userId,
       title: task.title,
       description: task.description,
       category: task.category,

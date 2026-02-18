@@ -13,13 +13,14 @@ import { Plus } from 'lucide-react';
 
 const AddTaskDialog = () => {
   const { user } = useAuth();
-  const { addTask } = useData();
+  const { addTask, employees } = useData();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Development');
   const [date, setDate] = useState(todayStr());
   const [targetMinutes, setTargetMinutes] = useState('');
+  const [assignedTo, setAssignedTo] = useState('me');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,12 +34,14 @@ const AddTaskDialog = () => {
         category,
         date,
         target_minutes: targetMinutes ? parseInt(targetMinutes) : undefined,
+        user_id: assignedTo === 'me' ? undefined : assignedTo,
       });
       setTitle('');
       setDescription('');
       setCategory('Development');
       setDate(todayStr());
       setTargetMinutes('');
+      setAssignedTo('me');
       setOpen(false);
     } finally {
       setSubmitting(false);
@@ -122,6 +125,26 @@ const AddTaskDialog = () => {
               />
               <p className="text-xs text-muted-foreground">Optional. You will be reminded when time is almost up.</p>
             </div>
+
+            {user?.role === 'admin' && (
+              <div className="col-span-2 space-y-2">
+                <Label className="text-sm font-medium">Assign To (Optional)</Label>
+                <Select value={assignedTo} onValueChange={setAssignedTo}>
+                  <SelectTrigger className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors">
+                    <SelectValue placeholder="Select an employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="me">Me ({user.name})</SelectItem>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.user_id}>
+                        {emp.name} ({emp.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Select an employee to assign this task to.</p>
+              </div>
+            )}
           </div>
           <Button type="submit" className="w-full font-semibold shadow-md" disabled={submitting}>
             {submitting ? 'Creating...' : 'Create Task'}

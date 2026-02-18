@@ -33,8 +33,13 @@ export function formatDuration(ms: number): string {
   return parts.join(' ');
 }
 
-export function getElapsedMs(sessions: TimeSessionLike[]): number {
-  return sessions.reduce((total, s) => total + ((s.end_time ?? Date.now()) - s.start_time), 0);
+export function getElapsedMs(sessions: TimeSessionLike[] | null | undefined): number {
+  if (!sessions || !Array.isArray(sessions)) return 0;
+  return sessions.reduce((total, s) => {
+    // Safety check for session object
+    if (!s || typeof s.start_time !== 'number') return total;
+    return total + ((s.end_time ?? Date.now()) - s.start_time);
+  }, 0);
 }
 
 export function todayStr(): string {
