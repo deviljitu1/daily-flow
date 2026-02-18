@@ -2,8 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, Users, MessageSquare, Plus, Search, Info } from 'lucide-react';
+import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +26,8 @@ interface Message {
     content: string;
     created_at: string;
     profiles?: { name: string } | null;
+    is_edited?: boolean;
+    is_deleted?: boolean;
 }
 
 const Chat = () => {
@@ -30,6 +38,7 @@ const Chat = () => {
     const [selectedUser, setSelectedUser] = useState<string | null>(null); // null = Group Chat
     const scrollRef = useRef<HTMLDivElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
     // Determine chat partner name for header
     const chatPartner = selectedUser
@@ -108,13 +117,26 @@ const Chat = () => {
         if (!newMessage.trim() || !user) return;
 
         try {
-            const { error } = await supabase.from('messages').insert({
-                sender_id: user.userId,
-                receiver_id: selectedUser, // null for Group
-                content: newMessage.trim(),
-            });
+            if (editingMessage) {
+                // Update existing message
+                const { error } = await supabase
+                    .from('messages')
+                    .update({ content: newMessage.trim(), is_edited: true })
+                    .eq('id', editingMessage.id);
 
-            if (error) throw error;
+                if (error) throw error;
+                setEditingMessage(null);
+            } else {
+                // Send new message
+                const { error } = await supabase.from('messages').insert({
+                    sender_id: user.userId,
+                    receiver_id: selectedUser, // null for Group
+                    content: newMessage.trim(),
+                });
+
+                if (error) throw error;
+            }
+
             setNewMessage('');
             // Immediately fetch messages to ensure it appears even if realtime lags
             await fetchMessages();
@@ -126,6 +148,37 @@ const Chat = () => {
                 variant: "destructive"
             });
         }
+    };
+
+    const handleDeleteMessage = async (messageId: string) => {
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .update({ is_deleted: true, content: 'This message was deleted' })
+                .eq('id', messageId);
+
+            if (error) throw error;
+            await fetchMessages();
+        } catch (error) {
+            console.error('Error deleting message:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete message.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const startEditing = (msg: Message) => {
+        setEditingMessage(msg);
+        setNewMessage(msg.content);
+        // Focus input
+        setTimeout(() => document.querySelector('input')?.focus(), 0);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        setNewMessage('');
     };
 
     const filteredEmployees = employees
@@ -305,12 +358,41 @@ const Chat = () => {
                                             )}
 
                                             <div className={cn(
-                                                "p-3 rounded-2xl shadow-sm break-words leading-relaxed text-sm animate-in zoom-in-95 duration-200",
+                                                "p-3 rounded-2xl shadow-sm break-words leading-relaxed text-sm animate-in zoom-in-95 duration-200 relative group/msg",
                                                 isMe
                                                     ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                                    : "bg-white dark:bg-muted border border-border/50 rounded-tl-sm ml-1"
+                                                    : "bg-white dark:bg-muted border border-border/50 rounded-tl-sm ml-1",
+                                                msg.is_deleted && "italic opacity-70 bg-muted/50 text-muted-foreground border-dashed"
                                             )}>
-                                                {msg.content}
+                                                {msg.is_deleted ? (
+                                                    <span className="flex items-center gap-1"><Info className="h-3 w-3" /> This message was deleted</span>
+                                                ) : (
+                                                    <>
+                                                        {msg.content}
+                                                        {msg.is_edited && <span className="text-[10px] ml-1 opacity-70">(edited)</span>}
+                                                    </>
+                                                )}
+
+                                                {/* Dropdown for Edit/Delete (Only for me and not deleted) */}
+                                                {isMe && !msg.is_deleted && (
+                                                    <div className="absolute top-1 right-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-black/10 dark:hover:bg-white/10">
+                                                                    <MoreVertical className="h-3 w-3" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => startEditing(msg)}>
+                                                                    <Pencil className="mr-2 h-3 w-3" /> Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleDeleteMessage(msg.id)} className="text-destructive">
+                                                                    <Trash2 className="mr-2 h-3 w-3" /> Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <p className={cn(
@@ -340,18 +422,33 @@ const Chat = () => {
                         <Input
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
-                            placeholder={`Message ${selectedUser ? chatPartner?.name : 'everyone'}...`}
+                            placeholder={editingMessage ? "Edit message..." : `Message ${selectedUser ? chatPartner?.name : 'everyone'}...`}
                             className="flex-1 bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors rounded-full px-4"
                             autoFocus
                         />
+                        {editingMessage && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={cancelEditing}
+                                className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+                                title="Cancel Edit"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        )}
                         <Button
                             type="submit"
                             size="icon"
                             disabled={!newMessage.trim()}
-                            className="rounded-full h-10 w-10 shrink-0 shadow-md shadow-primary/20 disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                            className={cn(
+                                "rounded-full h-10 w-10 shrink-0 shadow-md shadow-primary/20 disabled:opacity-50 transition-all hover:scale-105 active:scale-95",
+                                editingMessage ? "bg-amber-500 hover:bg-amber-600" : ""
+                            )}
                         >
-                            <Send className="h-4 w-4" />
-                            <span className="sr-only">Send</span>
+                            {editingMessage ? <Pencil className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                            <span className="sr-only">{editingMessage ? "Update" : "Send"}</span>
                         </Button>
                     </form>
                 </div>
