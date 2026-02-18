@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { TASK_CATEGORIES } from '@/types';
 import { todayStr } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,18 @@ const AddTaskDialog = () => {
       setTargetMinutes('');
       setAssignedTo('me');
       setOpen(false);
+      toast({
+        title: "Success",
+        description: "Task created successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

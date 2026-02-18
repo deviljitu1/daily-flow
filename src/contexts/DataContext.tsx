@@ -139,7 +139,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => {
     if (!user) return;
-    await supabase.from('tasks').insert({
+    const { error } = await supabase.from('tasks').insert({
       user_id: task.user_id || user.userId,
       title: task.title,
       description: task.description,
@@ -147,6 +147,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       date: task.date,
       target_minutes: task.target_minutes || null,
     });
+
+    if (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
+
     await refreshTasks();
   }, [user, refreshTasks]);
 
