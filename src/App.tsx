@@ -10,6 +10,8 @@ import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Employees from "@/pages/Employees";
+import TeamStatus from "@/pages/TeamStatus";
+import Chat from "@/pages/Chat";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
                 <Route element={<Layout />}>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/employees" element={<Employees />} />
+                  <Route path="/team-status" element={<TeamStatus />} />
+                  <Route path="/chat" element={<Chat />} />
                 </Route>
               </Route>
               <Route path="*" element={<NotFound />} />

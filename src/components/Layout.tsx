@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink as RouterNavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, Clock, Menu, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Clock, Menu, X, ChevronRight, Activity, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,8 @@ const Layout = () => {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/team-status', icon: Activity, label: 'Team Status' },
+    { to: '/chat', icon: MessageSquare, label: 'Chat' },
     ...(user?.role === 'admin' ? [{ to: '/employees', icon: Users, label: 'Employees' }] : []),
   ];
 
