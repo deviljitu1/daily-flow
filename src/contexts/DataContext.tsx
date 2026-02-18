@@ -120,6 +120,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // 10 minutes warning
           if (remaining <= 10 && remaining > 5 && !notifiedSet.has(10)) {
+            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
             toast({
               title: "Reminder: 10 Minutes Remaining",
               description: `Task "${task.title}" is due in 10 minutes.`,
@@ -129,6 +130,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // 5 minutes warning
           if (remaining <= 5 && remaining > 0 && !notifiedSet.has(5)) {
+            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
             toast({
               title: "Critical Reminder: 5 Minutes Remaining",
               description: `Task "${task.title}" is due in 5 minutes!`,
@@ -139,6 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Time up
           if (remaining <= 0 && !notifiedSet.has(0)) {
+            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
             toast({
               title: "Time's Up!",
               description: `Time limit for task "${task.title}" has been reached.`,
