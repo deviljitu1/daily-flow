@@ -2,7 +2,51 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, Users, MessageSquare, Plus, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Info } from 'lucide-react';
+// ... inside Chat component
+                    ) : (
+    <>
+        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-sm border border-primary/10">
+            <Users className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+            <h3 className="font-bold text-lg leading-none">Team Group Chat</h3>
+            <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:underline" onClick={() => document.getElementById('view-members-trigger')?.click()}>
+                General discussion for all {employees.length} members
+            </p>
+        </div>
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" id="view-members-trigger" title="View Members">
+                    <Info className="h-5 w-5 text-muted-foreground" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Team Members ({employees.length})</DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="h-72 pr-4">
+                    <div className="space-y-3">
+                        {employees.map(emp => (
+                            <div key={emp.user_id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.name}`} />
+                                    <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-medium text-sm">{emp.name}</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{emp.employee_type}</p>
+                                </div>
+                                {emp.is_active && <div className="ml-auto h-2 w-2 bg-green-500 rounded-full" title="Active" />}
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
+    </>
+)}
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
