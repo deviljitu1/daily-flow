@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X, Paperclip, Smile, Image as ImageIcon, FileText } from 'lucide-react';
+import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X, Paperclip, Smile, Image as ImageIcon, FileText, ArrowLeft } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import {
@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface Message {
     id: string;
@@ -45,6 +46,9 @@ const Chat = () => {
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [showMobileChat, setShowMobileChat] = useState(false);
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [groupUnreadCount, setGroupUnreadCount] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Determine chat partner name for header
@@ -66,9 +70,21 @@ const Chat = () => {
         if (selectedUser) {
             // 1:1 Chat: (me -> them) OR (them -> me)
             query = query.or(`and(sender_id.eq.${user.userId},receiver_id.eq.${selectedUser}),and(sender_id.eq.${selectedUser},receiver_id.eq.${user.userId})`);
+
+            // Mark messages as read immediately when fetching for open chat
+            await supabase.from('messages')
+                .update({ is_read: true })
+                .eq('sender_id', selectedUser)
+                .eq('receiver_id', user.userId)
+                .eq('is_read', false); // Only update unread ones
+
         } else {
             // Group Chat: receiver_id is null
             query = query.is('receiver_id', null);
+
+            // Mark group as read locally
+            localStorage.setItem('lastGroupReadTime', new Date().toISOString());
+            setGroupUnreadCount(0);
         }
 
         const { data, error } = await query;
@@ -77,6 +93,39 @@ const Chat = () => {
         } else {
             setMessages(data as any || []);
         }
+
+        // Also refresh unread counts
+        fetchUnreadCounts();
+    };
+
+    const fetchUnreadCounts = async () => {
+        if (!user) return;
+
+        // 1:1 Unread Counts
+        const { data } = await supabase
+            .from('messages')
+            .select('sender_id')
+            .eq('receiver_id', user.userId)
+            .eq('is_read', false);
+
+        const counts: Record<string, number> = {};
+        if (data) {
+            data.forEach((msg: any) => {
+                counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+            });
+        }
+        setUnreadCounts(counts);
+
+        // Group Unread Counts (Simulated via LocalStorage)
+        const lastRead = localStorage.getItem('lastGroupReadTime') || '1970-01-01';
+        // Note: Supabase .count() is cleaner but .select with head: true works too
+        const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .is('receiver_id', null)
+            .gt('created_at', lastRead);
+
+        setGroupUnreadCount(count || 0);
     };
 
     // Realtime subscription & Polling fallback
@@ -96,6 +145,8 @@ const Chat = () => {
                 },
                 (payload) => {
                     console.log('Realtime fetch triggered by:', payload);
+                    // If the new message is NOT for the current open chat, just refresh counts
+                    // Otherwise refresh messages
                     fetchMessages();
                 }
             )
@@ -237,7 +288,10 @@ const Chat = () => {
     return (
         <div className="flex h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
             {/* Sidebar: Chat List */}
-            <div className="w-80 flex flex-col glass-card border-none rounded-2xl overflow-hidden shrink-0">
+            <div className={cn(
+                "w-full md:w-80 flex-col glass-card border-none rounded-2xl overflow-hidden shrink-0",
+                showMobileChat ? "hidden md:flex" : "flex"
+            )}>
                 <div className="p-4 border-b border-border/50 bg-muted/20">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 text-primary" /> Changes
@@ -257,7 +311,10 @@ const Chat = () => {
                     <div className="p-3 space-y-2">
                         {/* Group Chat Item */}
                         <button
-                            onClick={() => setSelectedUser(null)}
+                            onClick={() => {
+                                setSelectedUser(null);
+                                setShowMobileChat(true);
+                            }}
                             className={cn(
                                 "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
                                 selectedUser === null
@@ -272,6 +329,11 @@ const Chat = () => {
                                 <p className="font-semibold truncate">Team Group Chat</p>
                                 <p className="text-xs opacity-70 truncate">Public channel for everyone</p>
                             </div>
+                            {groupUnreadCount > 0 && (
+                                <Badge variant="destructive" className="ml-auto rounded-full h-5 min-w-[1.25rem] px-1 flex items-center justify-center text-[10px]">
+                                    {groupUnreadCount}
+                                </Badge>
+                            )}
                         </button>
 
                         <Separator className="my-2 bg-border/40" />
@@ -281,7 +343,10 @@ const Chat = () => {
                         {filteredEmployees.map(emp => (
                             <button
                                 key={emp.user_id}
-                                onClick={() => setSelectedUser(emp.user_id)}
+                                onClick={() => {
+                                    setSelectedUser(emp.user_id);
+                                    setShowMobileChat(true);
+                                }}
                                 className={cn(
                                     "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
                                     selectedUser === emp.user_id
@@ -298,7 +363,12 @@ const Chat = () => {
                                     <p className="text-xs opacity-70 truncate capitalize">{emp.employee_type}</p>
                                 </div>
                                 {emp.is_active && (
-                                    <div className="h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" title="Active" />
+                                    <div className="h-2 w-2 rounded-full bg-green-500 ring-2 ring-background absolute bottom-3 left-10" title="Active" />
+                                )}
+                                {unreadCounts[emp.user_id] > 0 && (
+                                    <Badge variant="destructive" className="ml-auto rounded-full h-5 min-w-[1.25rem] px-1 flex items-center justify-center text-[10px]">
+                                        {unreadCounts[emp.user_id]}
+                                    </Badge>
                                 )}
                             </button>
                         ))}
@@ -307,9 +377,20 @@ const Chat = () => {
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col glass-card border-none rounded-2xl overflow-hidden shadow-xl">
+            <div className={cn(
+                "flex-1 flex-col glass-card border-none rounded-2xl overflow-hidden shadow-xl",
+                showMobileChat ? "flex" : "hidden md:flex"
+            )}>
                 {/* Chat Header */}
                 <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center gap-4">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden mr-1"
+                        onClick={() => setShowMobileChat(false)}
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
                     {selectedUser ? (
                         <>
                             <Avatar className="h-10 w-10 border border-background shadow-sm">
