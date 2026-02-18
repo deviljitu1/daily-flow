@@ -149,6 +149,14 @@ const Chat = () => {
                 },
                 (payload) => {
                     console.log('Realtime fetch triggered by:', payload);
+
+                    // Play notification sound if message is not from me
+                    const newMsg = payload.new as any;
+                    if (user && newMsg.sender_id !== user.userId) {
+                        const audio = new Audio('/universfield-new-notification-035-485894.mp3');
+                        audio.play().catch(e => console.log('Audio play failed:', e));
+                    }
+
                     // If the new message is NOT for the current open chat, just refresh counts
                     // Otherwise refresh messages
                     fetchMessages();
