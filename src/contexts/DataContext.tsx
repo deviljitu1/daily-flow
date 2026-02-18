@@ -139,8 +139,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => {
     if (!user) return;
+    const targetUserId = task.user_id || user.userId;
+    console.log("Adding task for:", targetUserId, "Current User:", user.userId, "Role:", user.role);
+
     const { error } = await supabase.from('tasks').insert({
-      user_id: task.user_id || user.userId,
+      user_id: targetUserId,
       title: task.title,
       description: task.description,
       category: task.category,
