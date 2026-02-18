@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
+import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X, Paperclip, Smile, Image as ImageIcon, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,6 +29,9 @@ interface Message {
     profiles?: { name: string } | null;
     is_edited?: boolean;
     is_deleted?: boolean;
+    attachment_url?: string;
+    attachment_type?: string; // 'image' | 'file'
+    attachment_name?: string;
 }
 
 const Chat = () => {
@@ -39,6 +43,9 @@ const Chat = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Determine chat partner name for header
     const chatPartner = selectedUser
@@ -114,9 +121,35 @@ const Chat = () => {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !user) return;
+        if ((!newMessage.trim() && !selectedFile) || !user) return;
 
         try {
+            let attachmentUrl = null;
+            let attachmentType = null;
+            let attachmentName = null;
+
+            if (selectedFile) {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `${user.userId}/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('chat-attachments')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) {
+                    throw uploadError;
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('chat-attachments')
+                    .getPublicUrl(filePath);
+
+                attachmentUrl = publicUrl;
+                attachmentType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
+                attachmentName = selectedFile.name;
+            }
+
             if (editingMessage) {
                 // Update existing message
                 const { error } = await supabase
@@ -132,21 +165,37 @@ const Chat = () => {
                     sender_id: user.userId,
                     receiver_id: selectedUser, // null for Group
                     content: newMessage.trim(),
+                    attachment_url: attachmentUrl,
+                    attachment_type: attachmentType,
+                    attachment_name: attachmentName
                 });
 
                 if (error) throw error;
             }
 
             setNewMessage('');
+            setSelectedFile(null);
+            setShowEmojiPicker(false);
             // Immediately fetch messages to ensure it appears even if realtime lags
             await fetchMessages();
         } catch (error) {
             console.error('Error sending message:', error);
             toast({
                 title: "Error",
-                description: "Failed to send message.",
+                description: "Failed to send message/file. Check storage permissions.",
                 variant: "destructive"
             });
+        }
+    };
+
+    const handleEmojiClick = (emojiData: EmojiClickData) => {
+        setNewMessage(prev => prev + emojiData.emoji);
+        // Don't close picker immediately to allow multiple emojis
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
         }
     };
 
@@ -368,6 +417,33 @@ const Chat = () => {
                                                     <span className="flex items-center gap-1"><Info className="h-3 w-3" /> This message was deleted</span>
                                                 ) : (
                                                     <>
+                                                        {msg.attachment_url && (
+                                                            <div className="mb-2">
+                                                                {msg.attachment_type === 'image' ? (
+                                                                    <div className="relative group/img cursor-pointer">
+                                                                        <img
+                                                                            src={msg.attachment_url}
+                                                                            alt="Attachment"
+                                                                            className="rounded-lg max-w-full max-h-60 object-cover border border-border/50"
+                                                                            onClick={() => window.open(msg.attachment_url!, '_blank')}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <a
+                                                                        href={msg.attachment_url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border/50"
+                                                                    >
+                                                                        <FileText className="h-8 w-8 text-primary" />
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-sm font-medium truncate max-w-[150px]">{msg.attachment_name || 'File'}</p>
+                                                                            <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+                                                                        </div>
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         {msg.content}
                                                         {msg.is_edited && <span className="text-[10px] ml-1 opacity-70">(edited)</span>}
                                                     </>
@@ -417,13 +493,57 @@ const Chat = () => {
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="p-4 bg-background border-t border-border/50">
-                    <form onSubmit={handleSendMessage} className="flex gap-2 max-w-3xl mx-auto">
+                <div className="p-4 bg-background border-t border-border/50 relative">
+                    {showEmojiPicker && (
+                        <div className="absolute bottom-20 left-4 z-50 shadow-xl rounded-xl border border-border">
+                            <EmojiPicker onEmojiClick={handleEmojiClick} theme="auto" />
+                        </div>
+                    )}
+
+                    {selectedFile && (
+                        <div className="absolute bottom-20 left-4 z-50 p-2 bg-background border border-border rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-2">
+                            <div className="p-2 bg-muted rounded-md">
+                                {selectedFile.type.startsWith('image/') ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                            </div>
+                            <div className="max-w-[200px] truncate text-sm">{selectedFile.name}</div>
+                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSendMessage} className="flex gap-2 max-w-3xl mx-auto items-end">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Attach File"
+                        >
+                            <Paperclip className="h-5 w-5" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            title="Add Emoji"
+                        >
+                            <Smile className="h-5 w-5" />
+                        </Button>
                         <Input
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
                             placeholder={editingMessage ? "Edit message..." : `Message ${selectedUser ? chatPartner?.name : 'everyone'}...`}
-                            className="flex-1 bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors rounded-full px-4"
+                            className="flex-1 bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors rounded-full px-4 py-6"
                             autoFocus
                         />
                         {editingMessage && (
@@ -441,7 +561,7 @@ const Chat = () => {
                         <Button
                             type="submit"
                             size="icon"
-                            disabled={!newMessage.trim()}
+                            disabled={!newMessage.trim() && !selectedFile}
                             className={cn(
                                 "rounded-full h-10 w-10 shrink-0 shadow-md shadow-primary/20 disabled:opacity-50 transition-all hover:scale-105 active:scale-95",
                                 editingMessage ? "bg-amber-500 hover:bg-amber-600" : ""
