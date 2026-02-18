@@ -44,9 +44,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .select('*, time_sessions(*)')
       .order('created_at', { ascending: false });
 
+    // Assuming RLS handles "Admins view all" and "Employees view own".
+    // However, the previous logic explicitly filtered by user.userId if not admin.
+    // If we want Admins to see ALL tasks, we should NOT filter by user.userId for admins.
+
     if (user.role !== 'admin') {
       query = query.eq('user_id', user.userId);
     }
+
+    // For admins, we fetch everything. The RLS policy "Admins can view all tasks" allows this.
 
     const { data } = await query;
     setTasks((data as unknown as TaskWithSessions[]) || []);

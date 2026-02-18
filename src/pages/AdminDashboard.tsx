@@ -22,10 +22,24 @@ const AdminDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
+
+
   const [dateFilter, setDateFilter] = useState(today);
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Update department filter when employee changes
+  useEffect(() => {
+    if (employeeFilter !== 'all') {
+      const selectedEmp = employees.find(e => e.user_id === employeeFilter);
+      if (selectedEmp) {
+        setTypeFilter(selectedEmp.employee_type);
+      }
+    } else {
+      setTypeFilter('all');
+    }
+  }, [employeeFilter, employees]);
 
   const activeEmployees = employees.filter(e => e.is_active && e.role === 'employee');
   const todayTasks = tasks.filter(t => t.date === today);
