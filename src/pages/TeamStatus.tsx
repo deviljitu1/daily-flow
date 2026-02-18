@@ -119,7 +119,14 @@ const TeamStatus = () => {
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                                <CardTitle className="text-base font-semibold">{member.name}</CardTitle>
+                                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                    {member.name}
+                                    {user?.userId === member.user_id && (
+                                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/20 text-primary bg-primary/5">
+                                            You
+                                        </Badge>
+                                    )}
+                                </CardTitle>
                                 <CardDescription className="text-xs uppercase font-medium text-muted-foreground">
                                     {member.role || 'Employee'}
                                 </CardDescription>
