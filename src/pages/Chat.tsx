@@ -265,7 +265,7 @@ const Chat = () => {
 
                 {/* Messages Area */}
                 <ScrollArea className="flex-1 p-4 md:p-6 bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="space-y-4 max-w-3xl mx-auto">
+                    <div className="space-y-2 max-w-3xl mx-auto">
                         {messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-center animate-in fade-in zoom-in-95 duration-500">
                                 <MessageSquare className="h-12 w-12 mb-3 opacity-20" />
