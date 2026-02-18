@@ -81,10 +81,6 @@ const Chat = () => {
         } else {
             // Group Chat: receiver_id is null
             query = query.is('receiver_id', null);
-
-            // Mark group as read locally
-            localStorage.setItem('lastGroupReadTime', new Date().toISOString());
-            setGroupUnreadCount(0);
         }
 
         const { data, error } = await query;
@@ -92,6 +88,14 @@ const Chat = () => {
             console.error('Error fetching messages:', error);
         } else {
             setMessages(data as any || []);
+
+            // For Group Chat, update last read time based on LATEST message
+            if (!selectedUser) {
+                const latestMsg = data && data.length > 0 ? data[data.length - 1] : null;
+                const lastReadTime = latestMsg ? latestMsg.created_at : new Date().toISOString();
+                localStorage.setItem('lastGroupReadTime', lastReadTime);
+                setGroupUnreadCount(0);
+            }
         }
 
         // Also refresh unread counts
