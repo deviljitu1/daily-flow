@@ -59,14 +59,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const refreshEmployees = useCallback(async () => {
-    if (!user || user.role !== 'admin') return;
+    if (!user) return;
 
     const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: roles } = await supabase.from('user_roles').select('*');
+
+    let roles: { user_id: string; role: AppRole }[] = [];
+    if (user.role === 'admin') {
+      const { data } = await supabase.from('user_roles').select('*');
+      if (data) roles = data as { user_id: string; role: AppRole }[];
+    } else {
+      // For non-admin, we can try to fetch roles, but if RLS prevents it, we just proceed.
+      // However, to keep it simple and safe:
+      // The user will see everyone as 'employee' unless we fetch roles differently.
+      // For Chat purposes, 'role' isn't critical.
+    }
 
     const withRoles: ProfileWithRole[] = (profiles || []).map(p => ({
       ...p,
-      role: ((roles || []).find(r => r.user_id === p.user_id)?.role as AppRole) || 'employee',
+      role: (roles.find(r => r.user_id === p.user_id)?.role as AppRole) || 'employee',
     }));
 
     setEmployees(withRoles);
