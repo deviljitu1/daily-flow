@@ -16,6 +16,7 @@ interface TeamMemberActivity {
     task_description: string | null;
     task_status: string | null;
     todo_tasks: { title: string }[] | null;
+    progress_tasks: { title: string }[] | null;
     completed_tasks: { title: string }[] | null;
 }
 
@@ -147,7 +148,7 @@ const TeamStatus = () => {
                         <CardContent>
                             {member.current_task_title ? (
                                 <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Working on</p>
+                                    <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Active Work</p>
                                     <p className="text-sm font-medium text-foreground line-clamp-2" title={member.current_task_title || ''}>
                                         {member.current_task_title}
                                     </p>
@@ -163,10 +164,25 @@ const TeamStatus = () => {
                                 </div>
                             )}
 
-                            {/* Todo Tasks */}
+                            {/* Progress Work (Paused) */}
+                            {member.progress_tasks && member.progress_tasks.length > 0 && (
+                                <div className="mt-4">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Progress Work</p>
+                                    <ul className="space-y-1">
+                                        {member.progress_tasks.map((t, idx) => (
+                                            <li key={idx} className="text-sm flex items-start gap-2">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                                                <span className="opacity-90">{t.title}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Remaining Work (Todo) */}
                             {member.todo_tasks && member.todo_tasks.length > 0 && (
                                 <div className="mt-4">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Upcoming</p>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Remaining Work</p>
                                     <ul className="space-y-1">
                                         {member.todo_tasks.map((t, idx) => (
                                             <li key={idx} className="text-sm flex items-start gap-2">
@@ -178,10 +194,10 @@ const TeamStatus = () => {
                                 </div>
                             )}
 
-                            {/* Completed Tasks */}
+                            {/* Finished Work */}
                             {member.completed_tasks && member.completed_tasks.length > 0 && (
                                 <div className="mt-4">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Completed Today</p>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Finished Work</p>
                                     <ul className="space-y-1">
                                         {member.completed_tasks.map((t, idx) => (
                                             <li key={idx} className="text-sm flex items-start gap-2 text-muted-foreground">
