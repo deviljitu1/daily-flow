@@ -63,10 +63,12 @@ const Chat = () => {
         }
     };
 
-    // Realtime subscription
+    // Realtime subscription & Polling fallback
     useEffect(() => {
+        // Initial fetch
         fetchMessages();
 
+        // Realtime
         const channel = supabase
             .channel('chat_updates')
             .on(
@@ -76,14 +78,27 @@ const Chat = () => {
                     schema: 'public',
                     table: 'messages',
                 },
-                () => {
-                    fetchMessages();
+                (payload) => {
+                    // Check if the new message is relevant to current view
+                    const newMessage = payload.new as Message;
+                    if (
+                        (selectedUser && (newMessage.sender_id === selectedUser || newMessage.receiver_id === selectedUser)) ||
+                        (!selectedUser && !newMessage.receiver_id)
+                    ) {
+                        fetchMessages();
+                    }
                 }
             )
             .subscribe();
 
+        // Polling fallback (every 3 seconds) to ensure messages appear if WebSocket fails
+        const interval = setInterval(() => {
+            fetchMessages();
+        }, 3000);
+
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(interval);
         };
     }, [selectedUser, user]);
 
