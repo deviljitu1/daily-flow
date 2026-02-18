@@ -91,10 +91,10 @@ const Chat = () => {
             )
             .subscribe();
 
-        // Polling fallback (every 3 seconds) to ensure messages appear if WebSocket fails
+        // Polling fallback (every 1 second) to ensure messages appear if WebSocket fails
         const interval = setInterval(() => {
             fetchMessages();
-        }, 3000);
+        }, 1000);
 
         return () => {
             supabase.removeChannel(channel);
