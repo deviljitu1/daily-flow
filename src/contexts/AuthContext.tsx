@@ -22,62 +22,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (authUserId: string, email: string) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', authUserId)
-      .maybeSingle();
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authUserId)
-      .maybeSingle();
-
-    if (profile) {
-      if (!profile.is_active) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setLoading(false);
-        return false;
-      }
-
-      setUser({
-        id: profile.id,
-        userId: profile.user_id,
-        name: profile.name,
-        email,
-        employeeType: profile.employee_type as EmployeeType,
-        isActive: profile.is_active,
-        role: (roleData?.role as AppRole) || 'employee',
-      });
-      return true;
-    }
-    return false;
-  }, []);
-
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setTimeout(async () => {
-          await fetchProfile(session.user.id, session.user.email || '');
-          setLoading(false);
-        }, 0);
-      } else {
+    // Helper to fetch profile and set user
+    const fetchAndSetUser = async (session: any) => {
+      if (!session?.user) {
         setUser(null);
         setLoading(false);
+        return;
       }
+
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          // Don't log out yet, maybe just network blip? But we can't set user fully.
+        }
+
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (roleError) console.error("Role fetch error:", roleError);
+
+        if (profile) {
+          if (!profile.is_active) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
+          setUser({
+            id: profile.id,
+            userId: profile.user_id,
+            name: profile.name,
+            email: session.user.email || '',
+            employeeType: (profile.employee_type as EmployeeType) || 'Other',
+            isActive: profile.is_active,
+            role: (roleData?.role as AppRole) || 'employee',
+          });
+        } else {
+          // Profile missing - unexpected state for logged in user if seed ran?
+          // Or maybe it's a new user who hasn't completed setup.
+          console.warn("User logged in but no profile found.");
+        }
+      } catch (e) {
+        console.error("Error in fetchAndSetUser", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetchAndSetUser(session);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setLoading(false);
-      }
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // If we already have a user and session ID matches, maybe we don't need to re-fetch *everything* aggressively,
+      // but simpler to just re-fetch to be safe on token refresh etc.
+      fetchAndSetUser(session);
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
