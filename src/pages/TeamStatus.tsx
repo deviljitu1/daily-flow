@@ -39,9 +39,29 @@ const TeamStatus = () => {
 
     useEffect(() => {
         fetchTeamActivity();
-        // Auto-refresh every 30 seconds to keep status live
-        const interval = setInterval(fetchTeamActivity, 30000);
-        return () => clearInterval(interval);
+
+        // Real-time subscription for instant updates
+        const channel = supabase
+            .channel('team-status-updates')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'tasks' },
+                () => fetchTeamActivity()
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'profiles' },
+                () => fetchTeamActivity()
+            )
+            .subscribe();
+
+        // Auto-refresh fallback (every 10 seconds)
+        const interval = setInterval(fetchTeamActivity, 10000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(interval);
+        };
     }, []);
 
     if (loading) {
