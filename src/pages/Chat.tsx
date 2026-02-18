@@ -112,6 +112,8 @@ const Chat = () => {
 
             if (error) throw error;
             setNewMessage('');
+            // Immediately fetch messages to ensure it appears even if realtime lags
+            await fetchMessages();
         } catch (error) {
             console.error('Error sending message:', error);
             toast({
@@ -187,7 +189,7 @@ const Chat = () => {
                                 </Avatar>
                                 <div className="flex-1 overflow-hidden">
                                     <p className="font-semibold truncate">{emp.name}</p>
-                                    <p className="text-xs opacity-70 truncate capitalize">{emp.role}</p>
+                                    <p className="text-xs opacity-70 truncate capitalize">{emp.employee_type}</p>
                                 </div>
                                 {emp.is_active && (
                                     <div className="h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" title="Active" />
@@ -210,7 +212,7 @@ const Chat = () => {
                             </Avatar>
                             <div>
                                 <h3 className="font-bold text-lg leading-none">{chatPartner?.name}</h3>
-                                <p className="text-xs text-muted-foreground capitalize mt-1">{chatPartner?.role}</p>
+                                <p className="text-xs text-muted-foreground capitalize mt-1">{chatPartner?.employee_type}</p>
                             </div>
                         </>
                     ) : (
