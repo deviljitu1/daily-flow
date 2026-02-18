@@ -15,6 +15,8 @@ interface TeamMemberActivity {
     current_task_title: string | null;
     task_description: string | null;
     task_status: string | null;
+    todo_tasks: { title: string }[] | null;
+    completed_tasks: { title: string }[] | null;
 }
 
 const TeamStatus = () => {
@@ -158,6 +160,36 @@ const TeamStatus = () => {
                             ) : (
                                 <div className="mt-2 p-3 bg-transparent rounded-lg border border-dashed border-muted">
                                     <p className="text-sm text-muted-foreground italic text-center">Not currently working on a task</p>
+                                </div>
+                            )}
+
+                            {/* Todo Tasks */}
+                            {member.todo_tasks && member.todo_tasks.length > 0 && (
+                                <div className="mt-4">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Upcoming</p>
+                                    <ul className="space-y-1">
+                                        {member.todo_tasks.map((t, idx) => (
+                                            <li key={idx} className="text-sm flex items-start gap-2">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
+                                                <span className="opacity-90">{t.title}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Completed Tasks */}
+                            {member.completed_tasks && member.completed_tasks.length > 0 && (
+                                <div className="mt-4">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Completed Today</p>
+                                    <ul className="space-y-1">
+                                        {member.completed_tasks.map((t, idx) => (
+                                            <li key={idx} className="text-sm flex items-start gap-2 text-muted-foreground">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
+                                                <span className="line-through opacity-70">{t.title}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
                         </CardContent>
