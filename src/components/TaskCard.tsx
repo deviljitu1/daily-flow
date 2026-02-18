@@ -5,7 +5,7 @@ import { formatTimer, formatDuration, getElapsedMs, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2, Copy } from 'lucide-react';
+import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2, Copy, Coffee } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
@@ -117,8 +117,12 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pl-2 pr-8">
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className={cn('font-medium px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider', config.className)}>
-                {config.label}
+              <Badge variant="outline" className={cn('font-medium px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider',
+                task.status === 'In Progress' && !isRunning
+                  ? "bg-orange-500/10 text-orange-600 border-orange-500/20"
+                  : config.className
+              )}>
+                {task.status === 'In Progress' && !isRunning ? "On Break" : config.label}
               </Badge>
               <Badge variant="secondary" className="font-normal text-[10px] bg-secondary/50 text-secondary-foreground">
                 <Tag className="h-3 w-3 mr-1 opacity-70" />
@@ -185,16 +189,30 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
             {!isFinished && !readOnly && (
               <div className="flex items-center gap-2">
                 {isRunning ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleAction(pauseTimer)}
-                    disabled={actionLoading}
-                    className="h-9 w-9 p-0 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
-                  >
-                    <Pause className="h-4 w-4 fill-current" />
-                    <span className="sr-only">Pause</span>
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAction(pauseTimer)}
+                      disabled={actionLoading}
+                      className="h-9 w-9 p-0 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+                      title="Pause"
+                    >
+                      <Pause className="h-4 w-4 fill-current" />
+                      <span className="sr-only">Pause</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAction(pauseTimer)}
+                      disabled={actionLoading}
+                      className="h-9 w-9 p-0 rounded-full border-primary/20 hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/50 transition-all"
+                      title="Take a Break"
+                    >
+                      <Coffee className="h-4 w-4" />
+                      <span className="sr-only">Take a Break</span>
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     size="sm"
