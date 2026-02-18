@@ -208,3 +208,21 @@ CREATE POLICY "Users can manage own time sessions" ON public.time_sessions
 CREATE POLICY "Admins can view all time sessions" ON public.time_sessions
   FOR SELECT TO authenticated
   USING (public.is_admin());
+
+-- ADDED POLICIES FOR ADMIN MANAGEMENT
+
+CREATE POLICY "Admins can manage all tasks" ON public.tasks
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- Ensure this policy doesn't conflict or duplicate "Admins can view all tasks"
+-- Actually "Admins can view all tasks" is FOR SELECT. "FOR ALL" covers SELECT, INSERT, UPDATE, DELETE.
+-- We can drop the SELECT only one if we want, or just add this overlapping one. Postgres allows multiple policies (OR logic).
+-- However, "FOR ALL" includes SELECT.
+
+-- Policy for Admins to manage time sessions (e.g. stop timers for employees)
+CREATE POLICY "Admins can manage all time sessions" ON public.time_sessions
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
