@@ -20,18 +20,22 @@ const TeamStatus = () => {
     const { user } = useAuth();
     const [teamActivity, setTeamActivity] = useState<TeamMemberActivity[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchTeamActivity = async () => {
         try {
             // Use the secure RPC function created in SQL
-            const { data, error } = await supabase.rpc('get_team_activity');
-            if (error) {
-                console.error('Error fetching team activity:', error);
+            const { data, error: fetchError } = await supabase.rpc('get_team_activity');
+            if (fetchError) {
+                console.error('Error fetching team activity:', fetchError);
+                setError(fetchError.message);
             } else {
                 setTeamActivity(data || []);
+                setError(null);
             }
-        } catch (error) {
-            console.error('Unexpected error:', error);
+        } catch (err: any) {
+            console.error('Unexpected error:', err);
+            setError(err.message || "Unknown error");
         } finally {
             setLoading(false);
         }
@@ -88,6 +92,21 @@ const TeamStatus = () => {
                     </p>
                 </div>
             </div>
+
+            {error && (
+                <div className="p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
+                    <p className="font-bold">Error loading status:</p>
+                    <p className="text-sm font-mono">{error}</p>
+                </div>
+            )}
+
+            {!loading && teamActivity.length === 0 && !error && (
+                <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed">
+                    <Users className="h-10 w-10 mx-auto text-muted-foreground opacity-50 mb-3" />
+                    <p className="text-lg font-medium">No team members found</p>
+                    <p className="text-sm text-muted-foreground">The team might be empty or permissions are restricted.</p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {teamActivity.map((member) => (
