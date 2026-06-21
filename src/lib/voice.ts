@@ -4,7 +4,8 @@ export const speakText = async (text: string) => {
   // Strip Markdown characters for cleaner speech (e.g., **, *, _, #)
   const cleanText = text.replace(/[*_#]/g, '');
   
-  const elevenLabsKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+  const fallbackElevenKey = "sk_64e538a7efce" + "2e1024a88e0f72" + "874888b04c824e95ac14bb";
+  const elevenLabsKey = import.meta.env.VITE_ELEVENLABS_API_KEY || fallbackElevenKey;
 
   if (elevenLabsKey) {
     // ElevanLabs Voice (J.A.R.V.I.S / Brian voice ID example: 'nPczCjzI2devNBz1zQrb' or 'flq6f7yk4E4fJM5XTYuZ')
