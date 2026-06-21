@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { getGroqClient, AI_TOOLS, generateSystemPrompt, AIPersona } from '@/lib/ai-agent';
+import { getGroqClient, AI_TOOLS, generateSystemPrompt } from '@/lib/ai-agent';
+import type { AIPersona } from '@/lib/ai-agent';
 import { speakText, stopSpeaking } from '@/lib/voice';
 import { Bot, X, Maximize2, Minimize2, Send, Loader2, Mic, MicOff, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
