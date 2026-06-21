@@ -589,7 +589,7 @@ const Chat = () => {
                 <div className="p-4 bg-background border-t border-border/50 relative">
                     {showEmojiPicker && (
                         <div className="absolute bottom-20 left-4 z-50 shadow-xl rounded-xl border border-border">
-                            <EmojiPicker onEmojiClick={handleEmojiClick} theme="auto" />
+                            <EmojiPicker onEmojiClick={handleEmojiClick} theme={"auto" as never} />
                         </div>
                     )}
 
