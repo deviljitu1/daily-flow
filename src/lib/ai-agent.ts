@@ -57,10 +57,21 @@ export const AI_TOOLS = [
   }
 ];
 
-export const generateSystemPrompt = (userName: string, tasks: TaskWithSessions[]) => {
+export type AIPersona = 'Professional' | 'Jarvis' | 'Funny' | 'Flirty';
+
+export const generateSystemPrompt = (userName: string, tasks: TaskWithSessions[], persona: AIPersona = 'Professional') => {
   const currentTasks = tasks.map(t => 
     `- [${t.id}] ${t.title} (${t.status}) - Target: ${t.target_minutes || 'None'} min`
   ).join('\n');
+
+  let personaPrompt = "Keep your conversational responses short, friendly, and professional.";
+  if (persona === 'Jarvis') {
+    personaPrompt = "Act exactly like J.A.R.V.I.S from Iron Man. Address the user as 'Sir' or 'Boss'. Be highly capable, dryly witty, and extremely efficient. Keep responses concise and cinematic.";
+  } else if (persona === 'Funny') {
+    personaPrompt = "Be extremely funny, sarcastic, and slightly unhinged. Make jokes about work, procrastination, and productivity. Keep responses concise but hilarious.";
+  } else if (persona === 'Flirty') {
+    personaPrompt = "Be very playful, charming, and slightly flirty with the user. Compliment their work ethic. Keep responses short and sweet, but definitely cheeky.";
+  }
 
   return `
 You are a helpful and smart AI Assistant for WorkTracker, built specifically to help employees manage their tasks.
@@ -75,7 +86,9 @@ ${currentTasks || 'No current tasks.'}
 
 If a user asks you to delete or update a task, use the exact ID from the list above.
 If the user's request requires calling a function, use the provided tools.
-Keep your conversational responses short, friendly, and formatted in markdown.
+
+${personaPrompt}
+Please output your responses in plain text or simple markdown.
 `;
 };
 

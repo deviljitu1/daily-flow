@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { getGroqClient, AI_TOOLS, generateSystemPrompt } from '@/lib/ai-agent';
+import { getGroqClient, AI_TOOLS, generateSystemPrompt, AIPersona } from '@/lib/ai-agent';
 import { speakText, stopSpeaking } from '@/lib/voice';
 import { Bot, X, Maximize2, Minimize2, Send, Loader2, Mic, MicOff, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ export const AIAssistantWidget = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [persona, setPersona] = useState<AIPersona>('Jarvis');
   
   // Speech Recognition Setup
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -84,7 +85,7 @@ export const AIAssistantWidget = () => {
     try {
       const groq = getGroqClient();
       
-      const systemPrompt = generateSystemPrompt(user.name, tasks);
+      const systemPrompt = generateSystemPrompt(user.name, tasks, persona);
       
       const groqMessages = [
         { role: 'system', content: systemPrompt },
@@ -199,7 +200,16 @@ export const AIAssistantWidget = () => {
                <div className="absolute inset-0 bg-primary/20 animate-pulse z-0" />
             )}
           </div>
-          <h3 className="font-semibold text-sm">J.A.R.V.I.S Assistant</h3>
+          <select 
+            value={persona} 
+            onChange={(e) => setPersona(e.target.value as AIPersona)}
+            className="bg-transparent border-none text-sm font-semibold outline-none cursor-pointer focus:ring-0"
+          >
+            <option value="Jarvis">J.A.R.V.I.S</option>
+            <option value="Professional">Professional</option>
+            <option value="Funny">Funny</option>
+            <option value="Flirty">Flirty</option>
+          </select>
         </div>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={stopSpeaking} title="Stop Audio">
