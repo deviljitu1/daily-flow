@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import LunaAssistant from '@/components/LunaAssistant';
+import { AIAssistantWidget } from '@/components/AIAssistantWidget';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -167,9 +168,9 @@ const Layout = () => {
           </div>
         </main>
       </div>
-
       {/* Floating AI assistant — all users */}
       <LunaAssistant />
+      <AIAssistantWidget />
     </div>
   );
 };
