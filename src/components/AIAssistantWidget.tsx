@@ -34,7 +34,8 @@ export const AIAssistantWidget = () => {
 
       recognition.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setInput(prev => prev + (prev ? ' ' : '') + transcript);
+        // Auto-send the voice transcript immediately!
+        handleSend(undefined, transcript);
       };
 
       recognition.current.onend = () => {
@@ -73,12 +74,14 @@ export const AIAssistantWidget = () => {
     }
   }, [messages]);
 
-  const handleSend = async (e?: React.FormEvent) => {
+  const handleSend = async (e?: React.FormEvent, overrideText?: string) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading || !user) return;
+    
+    const userMessage = overrideText || input.trim();
+    if (!userMessage || isLoading || !user) return;
 
-    const userMessage = input.trim();
-    setInput('');
+    if (!overrideText) setInput('');
+    
     const newMessages = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
