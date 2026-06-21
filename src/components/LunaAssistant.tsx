@@ -52,7 +52,7 @@ const LunaAssistant = () => {
   }, [open]);
 
   // Don't show for admin
-  if (!user || user.role === 'admin') return null;
+  if (!user) return null;
 
   const send = async () => {
     const text = input.trim();
