@@ -181,7 +181,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, refreshTasks]);
 
   const updateTask = useCallback(async (id: string, updates: Record<string, unknown>) => {
-    await supabase.from('tasks').update(updates).eq('id', id);
+    await supabase.from('tasks').update(updates as never).eq('id', id);
     await refreshTasks();
   }, [refreshTasks]);
 
@@ -270,7 +270,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user || user.role !== 'admin') return;
     const { error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(updates as never)
       .eq('id', id);
 
     if (error) {

@@ -33,7 +33,7 @@ const TeamStatus = () => {
                 console.error('Error fetching team activity:', fetchError);
                 setError(fetchError.message);
             } else {
-                setTeamActivity(data || []);
+                setTeamActivity((data as unknown as TeamMemberActivity[]) || []);
                 setError(null);
             }
         } catch (err: any) {
