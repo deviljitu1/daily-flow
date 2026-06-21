@@ -94,12 +94,10 @@ Please output your responses in plain text or simple markdown.
 
 // Initialize Groq Client
 export const getGroqClient = () => {
-  // Use env variable if available, otherwise use the split key to bypass GitHub Secret Scanning
-  const fallbackKey = "gsk_u8VMXxelW2" + "mzhIdWNoWmWGdy" + "b3FYEiKf6oQUS8TTxIS1VGT6u7ma";
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || fallbackKey;
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
   
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY is not defined.");
+    throw new Error("VITE_GROQ_API_KEY is not defined.");
   }
   return new Groq({
     apiKey,
