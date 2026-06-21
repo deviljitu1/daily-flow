@@ -168,7 +168,7 @@ const Layout = () => {
         </main>
       </div>
 
-      {/* Floating AI assistant — employees only */}
+      {/* Floating AI assistant — all users */}
       <LunaAssistant />
     </div>
   );
