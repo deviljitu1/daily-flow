@@ -41,22 +41,6 @@ const Login = () => {
     }
   };
 
-  const handleSeedDemo = async () => {
-    setSeeding(true);
-    setError('');
-    try {
-      const { data, error } = await supabase.functions.invoke('seed-demo-data');
-      if (error) {
-        setError('Failed to seed demo data: ' + error.message);
-      } else {
-        setSeedDone(true);
-      }
-    } catch (err) {
-      setError('Failed to seed demo data.');
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex w-full">
