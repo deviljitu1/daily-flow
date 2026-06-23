@@ -22,7 +22,7 @@ export const AIAssistantWidget = () => {
   const [persona, setPersona] = useState<AIPersona>('Jarvis');
   
   // Speech Recognition Setup
-  const SpeechRecognition = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+  const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   const recognition = useRef<any>(null);
 
   useEffect(() => {
