@@ -101,7 +101,7 @@ const TeamStatus = () => {
                         )}
                     </CardTitle>
                     <CardDescription className="text-xs uppercase font-medium text-muted-foreground">
-                        {member.role || 'Employee'}
+                        {member.role || 'Team Member'}
                     </CardDescription>
                 </div>
                 {member.current_task_title ? (

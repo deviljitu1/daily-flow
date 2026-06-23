@@ -1,11 +1,9 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { Clock, ArrowRight, Loader2 } from 'lucide-react';
 
 const Login = () => {
@@ -13,10 +11,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [seedDone, setSeedDone] = useState(false);
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+
 
   if (loading) {
     return (
@@ -44,22 +41,6 @@ const Login = () => {
     }
   };
 
-  const handleSeedDemo = async () => {
-    setSeeding(true);
-    setError('');
-    try {
-      const { data, error } = await supabase.functions.invoke('seed-demo-data');
-      if (error) {
-        setError('Failed to seed demo data: ' + error.message);
-      } else {
-        setSeedDone(true);
-      }
-    } catch (err) {
-      setError('Failed to seed demo data.');
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex w-full">
@@ -155,47 +136,10 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border/60" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Demo Access</span>
-            </div>
-          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Need access? Contact your workspace administrator.
+          </p>
 
-          <Card className="glass-card border-none p-6 space-y-4">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                <span className="font-medium text-foreground">Admin:</span>
-                <span className="font-mono bg-muted px-2 py-0.5 rounded">admin@demo.com</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                <span className="font-medium text-foreground">Employee:</span>
-                <span className="font-mono bg-muted px-2 py-0.5 rounded">employee@demo.com</span>
-              </div>
-            </div>
-
-            {!seedDone && (
-              <Button
-                variant="outline"
-                className="w-full h-10 border-dashed hover:border-primary hover:text-primary transition-all"
-                onClick={handleSeedDemo}
-                disabled={seeding}
-              >
-                {seeding ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Seeding...
-                  </div>
-                ) : 'Seed Demo Data'}
-              </Button>
-            )}
-            {seedDone && (
-              <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400 font-medium bg-green-500/10 p-2 rounded-lg">
-                <span>✓</span> Demo data ready
-              </div>
-            )}
-          </Card>
         </div>
       </div>
     </div>

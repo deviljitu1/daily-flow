@@ -286,7 +286,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) {
       console.error("Delete failed", error);
       toast({
-        title: "Cannot Delete Employee",
+        title: "Cannot Delete Team Member",
         description: "Ensure the employee has no associated tasks or data before deleting.",
         variant: "destructive"
       });

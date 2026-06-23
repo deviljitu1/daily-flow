@@ -65,7 +65,7 @@ const AdminDashboard = () => {
   };
 
   const downloadCSV = () => {
-    const headers = ['Task Title', 'Description', 'Category', 'Date', 'Status', 'Employee', 'Duration (mins)'];
+    const headers = ['Task Title', 'Description', 'Category', 'Date', 'Status', 'Team Member', 'Duration (mins)'];
     const rows = filteredTasks.map(t => {
       const emp = employees.find(e => e.user_id === t.user_id);
       const duration = Math.round(getElapsedMs(t.time_sessions) / 60000);
@@ -121,7 +121,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* ... stats ... */}
-        <StatCard icon={Users} label="Active Employees" value={activeEmployees.length} />
+        <StatCard icon={Users} label="Active Team Members" value={activeEmployees.length} />
         <StatCard icon={ClipboardList} label="Tasks Today" value={todayTasks.length} />
         <StatCard icon={CheckCircle} label="Completed Today" value={completedToday} />
         <StatCard icon={Clock} label="Total Hours Today" value={formatDuration(totalTimeToday)} />
@@ -147,13 +147,13 @@ const AdminDashboard = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Employee</Label>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Team Member</Label>
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
               <SelectTrigger className="bg-background/50 border-input/50">
-                <SelectValue placeholder="All Employees" />
+                <SelectValue placeholder="All Team Members" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
+                <SelectItem value="all">All Team Members</SelectItem>
                 {employees
                   .filter(e => e.role === 'employee')
                   .map(e => (

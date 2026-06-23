@@ -60,7 +60,7 @@ const Employees = () => {
         return;
       }
 
-      toast({ title: 'Success', description: 'Employee created successfully' });
+      toast({ title: 'Success', description: 'Team member created successfully' });
       setName('');
       setEmail('');
       setPassword('');
@@ -80,10 +80,10 @@ const Employees = () => {
     if (!deletingEmployee) return;
     try {
       await deleteEmployee(deletingEmployee.id);
-      toast({ title: 'Success', description: 'Employee deleted successfully' });
+      toast({ title: 'Success', description: 'Team member deleted successfully' });
       setDeletingEmployee(null);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete employee', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to delete team member', variant: 'destructive' });
     }
   };
 
@@ -99,19 +99,19 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Team</h1>
           <p className="text-muted-foreground mt-1">Manage your team members and their roles.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="shadow-lg shadow-primary/20">
               <Plus className="h-4 w-4 mr-2" />
-              Add Employee
+              Add Team Member
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
+              <DialogTitle>Add New Team Member</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -150,7 +150,7 @@ const Employees = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Employee Type</Label>
+                <Label>Role</Label>
                 <Select value={empType} onValueChange={v => setEmpType(v as EmployeeType)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -165,7 +165,7 @@ const Employees = () => {
                 </Select>
               </div>
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Add Employee'}
+                {submitting ? 'Creating...' : 'Add Team Member'}
               </Button>
             </form>
           </DialogContent>
@@ -179,7 +179,7 @@ const Employees = () => {
             <div className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search employees..."
+                placeholder="Search team..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 bg-background/50 border-input/50 focus:bg-background transition-colors"
@@ -187,7 +187,7 @@ const Employees = () => {
             </div>
           </div>
           <CardDescription>
-            A list of all employees currently in your organization.
+            A list of all team members currently in your organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -207,7 +207,7 @@ const Employees = () => {
                     <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <User className="h-8 w-8 opacity-20" />
-                        <p>No employees found.</p>
+                        <p>No team members found.</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -268,7 +268,7 @@ const Employees = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setDeletingEmployee(emp)} className="text-destructive focus:text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Employee
+                              Delete Team Member
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -302,7 +302,7 @@ const Employees = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete Employee
+              Delete Team Member
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

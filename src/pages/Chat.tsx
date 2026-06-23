@@ -351,7 +351,7 @@ const Chat = () => {
                         <Separator className="my-2 bg-border/40" />
                         <p className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Direct Messages</p>
 
-                        {/* Employee List */}
+                        {/* Team Member List */}
                         {filteredEmployees.map(emp => (
                             <button
                                 key={emp.user_id}

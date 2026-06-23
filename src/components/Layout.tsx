@@ -51,7 +51,7 @@ const Layout = () => {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/team-status', icon: Activity, label: 'Team Status' },
     { to: '/chat', icon: MessageSquare, label: 'Chat' },
-    ...(user?.role === 'admin' ? [{ to: '/employees', icon: Users, label: 'Employees' }] : []),
+    ...(user?.role === 'admin' ? [{ to: '/employees', icon: Users, label: 'Team' }] : []),
   ];
 
   const SidebarContent = () => (
