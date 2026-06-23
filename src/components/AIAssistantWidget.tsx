@@ -15,14 +15,14 @@ import { toast } from '@/hooks/use-toast';
 export const AIAssistantWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
+  const [messages, setMessages] = useState<Array<Record<string, unknown>>>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [persona, setPersona] = useState<AIPersona>('Jarvis');
   
   // Speech Recognition Setup
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
   const recognition = useRef<any>(null);
 
   useEffect(() => {
