@@ -15,14 +15,14 @@ import { toast } from '@/hooks/use-toast';
 export const AIAssistantWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
+  const [messages, setMessages] = useState<Array<Record<string, unknown>>>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [persona, setPersona] = useState<AIPersona>('Jarvis');
   
   // Speech Recognition Setup
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   const recognition = useRef<any>(null);
 
   useEffect(() => {
@@ -242,7 +242,7 @@ export const AIAssistantWidget = () => {
                 "p-3 rounded-2xl text-sm", 
                 m.role === 'user' ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-white dark:bg-muted border border-border/50 rounded-tl-sm prose prose-sm dark:prose-invert"
               )}>
-                {m.role === 'user' ? m.content : <ReactMarkdown>{m.content}</ReactMarkdown>}
+                {m.role === 'user' ? String(m.content ?? '') : <ReactMarkdown>{String(m.content ?? '')}</ReactMarkdown>}
               </div>
             </div>
           ))}
