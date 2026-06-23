@@ -101,18 +101,6 @@ export type Database = {
         }
         Relationships: []
       }
-      result: {
-        Row: {
-          json_agg: Json | null
-        }
-        Insert: {
-          json_agg?: Json | null
-        }
-        Update: {
-          json_agg?: Json | null
-        }
-        Relationships: []
-      }
       tasks: {
         Row: {
           category: string
