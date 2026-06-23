@@ -1,11 +1,9 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { Clock, ArrowRight, Loader2 } from 'lucide-react';
 
 const Login = () => {
@@ -13,10 +11,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [seedDone, setSeedDone] = useState(false);
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+
 
   if (loading) {
     return (
