@@ -242,7 +242,7 @@ export const AIAssistantWidget = () => {
                 "p-3 rounded-2xl text-sm", 
                 m.role === 'user' ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-white dark:bg-muted border border-border/50 rounded-tl-sm prose prose-sm dark:prose-invert"
               )}>
-                {m.role === 'user' ? m.content : <ReactMarkdown>{m.content}</ReactMarkdown>}
+                {m.role === 'user' ? String(m.content ?? '') : <ReactMarkdown>{String(m.content ?? '')}</ReactMarkdown>}
               </div>
             </div>
           ))}
