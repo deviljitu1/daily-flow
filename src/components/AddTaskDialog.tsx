@@ -144,7 +144,7 @@ const AddTaskDialog = () => {
                 <Label className="text-sm font-medium">Assign To (Optional)</Label>
                 <Select value={assignedTo} onValueChange={setAssignedTo}>
                   <SelectTrigger className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors">
-                    <SelectValue placeholder="Select an employee" />
+                    <SelectValue placeholder="Select a team member" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="me">Me ({user.name})</SelectItem>
@@ -155,7 +155,7 @@ const AddTaskDialog = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Select an employee to assign this task to.</p>
+                <p className="text-xs text-muted-foreground">Select a team member to assign this task to.</p>
               </div>
             )}
           </div>

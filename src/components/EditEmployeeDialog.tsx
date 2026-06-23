@@ -62,7 +62,7 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px] glass-card border-none">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Edit Employee</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Edit Team Member</DialogTitle>
                 </DialogHeader>
 
                 <div className="bg-muted/30 p-4 rounded-lg space-y-3 mb-4 border border-border/50">

@@ -147,13 +147,13 @@ const AdminDashboard = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Employee</Label>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Team Member</Label>
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
               <SelectTrigger className="bg-background/50 border-input/50">
-                <SelectValue placeholder="All Employees" />
+                <SelectValue placeholder="All Team Members" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
+                <SelectItem value="all">All Team Members</SelectItem>
                 {employees
                   .filter(e => e.role === 'employee')
                   .map(e => (
