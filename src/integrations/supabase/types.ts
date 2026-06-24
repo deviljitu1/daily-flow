@@ -142,18 +142,21 @@ export type Database = {
       }
       time_sessions: {
         Row: {
+          created_by: string
           end_time: number | null
           id: string
           start_time: number
           task_id: string
         }
         Insert: {
+          created_by?: string
           end_time?: number | null
           id?: string
           start_time: number
           task_id: string
         }
         Update: {
+          created_by?: string
           end_time?: number | null
           id?: string
           start_time?: number
