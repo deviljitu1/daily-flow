@@ -140,6 +140,10 @@ const Layout = () => {
 
 
         <main className="flex-1 overflow-auto bg-muted/20 relative">
+          {/* Desktop floating settings */}
+          <div className="hidden md:flex absolute top-4 right-6 z-20">
+            <NotificationSettings />
+          </div>
           {/* Subtle background pattern for main content */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
           <div className="relative p-6 md:p-8 max-w-7xl mx-auto w-full">
