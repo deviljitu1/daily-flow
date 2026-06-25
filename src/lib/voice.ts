@@ -1,73 +1,54 @@
-// Helper for Voice Capabilities (Text-to-Speech)
+// Text-to-Speech with ElevenLabs (via Supabase Edge Function) + browser fallback.
+// All speech is gated by the user's notification preferences (voiceEnabled).
+
+import { supabase } from '@/integrations/supabase/client';
+import { getNotificationPrefs } from '@/lib/notifications';
+
+let currentAudio: HTMLAudioElement | null = null;
+
+const stripMarkdown = (s: string) => s.replace(/[*_#`>]/g, '');
+
+const playBrowserTTS = (text: string) => {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  const preferred =
+    voices.find((v) => v.name.includes('Google UK English Male') || v.name.includes('Daniel')) || voices[0];
+  if (preferred) utterance.voice = preferred;
+  utterance.rate = 1.05;
+  utterance.pitch = 0.9;
+  window.speechSynthesis.speak(utterance);
+};
 
 export const speakText = async (text: string) => {
-  // Strip Markdown characters for cleaner speech (e.g., **, *, _, #)
-  const cleanText = text.replace(/[*_#]/g, '');
-  
-  const elevenLabsKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+  const prefs = getNotificationPrefs();
+  if (!prefs.voiceEnabled) return;
 
-  if (elevenLabsKey) {
-    // ElevanLabs Voice (J.A.R.V.I.S / Brian voice ID example: 'nPczCjzI2devNBz1zQrb' or 'flq6f7yk4E4fJM5XTYuZ')
-    // We'll use a generic voice ID, but the user can customize it
-    const voiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB'; // Adam (default)
-    
-    try {
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': elevenLabsKey
-        },
-        body: JSON.stringify({
-          text: cleanText,
-          model_id: 'eleven_turbo_v2_5', // Fastest model
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          }
-        })
-      });
+  const cleanText = stripMarkdown(text).trim();
+  if (!cleanText) return;
 
-      if (!response.ok) {
-        throw new Error('ElevenLabs API error');
-      }
+  stopSpeaking();
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+  try {
+    const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+      body: { text: cleanText.slice(0, 2000) },
+    });
+    if (error) throw error;
+    if (data?.audioContent) {
+      const url = `data:${data.mimeType || 'audio/mpeg'};base64,${data.audioContent}`;
       const audio = new Audio(url);
-      audio.play();
-      
-      // Clean up URL after playing
-      audio.onended = () => URL.revokeObjectURL(url);
+      currentAudio = audio;
+      audio.onended = () => {
+        if (currentAudio === audio) currentAudio = null;
+      };
+      await audio.play();
       return;
-    } catch (error) {
-      console.error('ElevenLabs failed, falling back to browser TTS:', error);
-      // Fallback to browser TTS if ElevenLabs fails
     }
-  }
-
-  // Fallback: Browser Native Web Speech API
-  if ('speechSynthesis' in window) {
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    
-    // Try to find a good English voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel')) || voices[0];
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
-    
-    utterance.rate = 1.05; // Slightly faster for responsiveness
-    utterance.pitch = 0.9; // Slightly lower pitch for a "Jarvis" feel if using generic voices
-    
-    window.speechSynthesis.speak(utterance);
-  } else {
-    console.warn("Text-to-Speech is not supported in this browser.");
+    throw new Error('No audio returned');
+  } catch (err) {
+    console.warn('ElevenLabs TTS failed, falling back to browser TTS:', err);
+    playBrowserTTS(cleanText);
   }
 };
 
@@ -75,6 +56,13 @@ export const stopSpeaking = () => {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
-  // Note: Stopping HTML5 Audio (ElevenLabs) requires maintaining a reference to the Audio object,
-  // which we can implement later if needed. For now, we just stop browser TTS.
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    currentAudio = null;
+  }
 };
