@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, NavLink as RouterNavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Users, LogOut, Clock, Menu, X, ChevronRight, Activity, MessageSquare } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import LunaAssistant from '@/components/LunaAssistant';
 import { AIAssistantWidget } from '@/components/AIAssistantWidget';
+import NotificationSettings from '@/components/NotificationSettings';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -15,32 +16,6 @@ const Layout = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Audio Unlocker for Autoplay Policy
-  useEffect(() => {
-    const unlockAudio = () => {
-      const sound = new Audio('/universfield-new-notification-035-485894.mp3');
-      sound.volume = 0;
-      sound.play().then(() => {
-        console.log("Audio Context Unlocked");
-        // Remove listeners once successful
-        document.removeEventListener('click', unlockAudio);
-        document.removeEventListener('keydown', unlockAudio);
-        document.removeEventListener('touchstart', unlockAudio);
-      }).catch(e => {
-        console.log("Audio unlock attempt failed:", e);
-      });
-    };
-
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
-    document.addEventListener('touchstart', unlockAudio);
-
-    return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('keydown', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
-    };
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -155,12 +130,20 @@ const Layout = () => {
             </div>
             <span className="font-bold">WorkTracker</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
-            <Menu className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationSettings />
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
         </header>
 
+
         <main className="flex-1 overflow-auto bg-muted/20 relative">
+          {/* Desktop floating settings */}
+          <div className="hidden md:flex absolute top-4 right-6 z-20">
+            <NotificationSettings />
+          </div>
           {/* Subtle background pattern for main content */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
           <div className="relative p-6 md:p-8 max-w-7xl mx-auto w-full">

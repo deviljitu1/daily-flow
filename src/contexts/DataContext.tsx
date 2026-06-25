@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TaskWithSessions, ProfileWithRole, AppRole } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { getElapsedMs } from '@/lib/utils';
+import { getNotificationPrefs, playNotificationSound } from '@/lib/notifications';
 
 interface DataContextType {
   employees: ProfileWithRole[];
@@ -98,61 +99,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Reminder Logic
   useEffect(() => {
-    // Ensure tasks exist and is iterable
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) return;
 
     const interval = setInterval(() => {
+      const prefs = getNotificationPrefs();
+      if (!prefs.remindersEnabled) return;
+
       tasks.forEach(task => {
-        // Defensive checks: ensure task exists, has status 'In Progress', has target_minutes, and time_sessions
         if (task && task.status === 'In Progress' && task.target_minutes && task.time_sessions) {
           const sessions = task.time_sessions || [];
           const elapsedMs = getElapsedMs(sessions);
-
           const elapsedMinutes = elapsedMs / (1000 * 60);
           const remaining = task.target_minutes - elapsedMinutes;
 
-          // Initialize set if not exists
           if (!notifiedTasks.current[task.id]) {
             notifiedTasks.current[task.id] = new Set();
           }
-
           const notifiedSet = notifiedTasks.current[task.id];
 
-          // 10 minutes warning
           if (remaining <= 10 && remaining > 5 && !notifiedSet.has(10)) {
-            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
+            playNotificationSound();
             toast({
-              title: "Reminder: 10 Minutes Remaining",
+              title: 'Reminder: 10 minutes remaining',
               description: `Task "${task.title}" is due in 10 minutes.`,
+              duration: 6000,
             });
             notifiedSet.add(10);
           }
 
-          // 5 minutes warning
           if (remaining <= 5 && remaining > 0 && !notifiedSet.has(5)) {
-            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
+            playNotificationSound();
             toast({
-              title: "Critical Reminder: 5 Minutes Remaining",
-              description: `Task "${task.title}" is due in 5 minutes!`,
-              variant: "destructive",
+              title: 'Critical: 5 minutes remaining',
+              description: `Task "${task.title}" is due in 5 minutes.`,
+              variant: 'destructive',
+              duration: 6000,
             });
             notifiedSet.add(5);
           }
 
-          // Time up
           if (remaining <= 0 && !notifiedSet.has(0)) {
-            console.log("Playing Time's Up sound");
-            new Audio('/soundreality-notification-9-158194.mp3').play().catch(e => console.error('Audio play failed:', e));
+            playNotificationSound();
             toast({
-              title: "Time's Up!",
+              title: "Time's up",
               description: `Time limit for task "${task.title}" has been reached.`,
-              variant: "destructive",
+              variant: 'destructive',
+              duration: 6000,
             });
             notifiedSet.add(0);
           }
         }
       });
-    }, 10000); // Check every 10 seconds
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [tasks]);
@@ -191,15 +189,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshTasks]);
 
   const startTimer = useCallback(async (taskId: string) => {
-    // Attempt to unlock audio context immediately on user interaction
-    try {
-      const unlockAudio = new Audio('/soundreality-notification-9-158194.mp3');
-      unlockAudio.volume = 0; // Mute so user doesn't hear it
-      unlockAudio.play().catch(e => console.log('Audio unlock failed:', e));
-    } catch (e) {
-      // Ignore errors
-    }
-
     if (!user) return;
 
     // Close any open sessions for other tasks of this user
