@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { TASK_CATEGORIES, TaskWithSessions } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,14 @@ interface EditTaskDialogProps {
 }
 
 const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
-    const { updateTask } = useData();
+    const { updateTask, employees } = useData();
+    const { user } = useAuth();
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
     const [category, setCategory] = useState(task.category);
     const [date, setDate] = useState(task.date);
-    // Initialize targetMinutes safely
     const [targetMinutes, setTargetMinutes] = useState(task.target_minutes ? String(task.target_minutes) : '');
+    const [assignedTo, setAssignedTo] = useState(task.user_id);
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -31,6 +33,7 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
             setCategory(task.category);
             setDate(task.date);
             setTargetMinutes(task.target_minutes ? String(task.target_minutes) : '');
+            setAssignedTo(task.user_id);
         }
     }, [open, task]);
 
@@ -39,13 +42,17 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
         if (!title.trim()) return;
         setSubmitting(true);
         try {
-            await updateTask(task.id, {
+            const updates: Record<string, unknown> = {
                 title: title.trim(),
                 description: description.trim(),
                 category,
                 date,
                 target_minutes: targetMinutes ? parseInt(targetMinutes) : undefined,
-            });
+            };
+            if (user?.role === 'admin' && assignedTo !== task.user_id) {
+                updates.user_id = assignedTo;
+            }
+            await updateTask(task.id, updates);
             onOpenChange(false);
         } finally {
             setSubmitting(false);
@@ -104,20 +111,41 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2 space-y-2">
-                            <Label htmlFor="edit-target-time">Target Duration (Minutes)</Label>
-                            <Input
-                                id="edit-target-time"
-                                type="number"
-                                min="1"
-                                placeholder="e.g. 30"
-                                value={targetMinutes}
-                                onChange={e => setTargetMinutes(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">Optional. Set reminders for task completion.</p>
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-target-time">Target Duration (Minutes)</Label>
+                        <Input
+                            id="edit-target-time"
+                            type="number"
+                            min="1"
+                            placeholder="e.g. 30"
+                            value={targetMinutes}
+                            onChange={e => setTargetMinutes(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">Optional. Set reminders for task completion.</p>
                     </div>
+
+                    {user?.role === 'admin' && (
+                        <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                            <Label className="text-sm font-semibold">👥 Reassign To</Label>
+                            <Select value={assignedTo} onValueChange={setAssignedTo}>
+                                <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {employees
+                                        .filter(emp => emp.is_active)
+                                        .map(emp => (
+                                            <SelectItem key={emp.id} value={emp.user_id}>
+                                                {emp.name} — {emp.employee_type}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Change the team member responsible for this task.
+                            </p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
                             Cancel

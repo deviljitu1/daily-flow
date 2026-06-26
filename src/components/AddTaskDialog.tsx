@@ -140,22 +140,28 @@ const AddTaskDialog = () => {
             </div>
 
             {user && user.role === 'admin' && (
-              <div className="col-span-2 space-y-2">
-                <Label className="text-sm font-medium">Assign To (Optional)</Label>
+              <div className="col-span-2 space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  👥 Assign To
+                </Label>
                 <Select value={assignedTo} onValueChange={setAssignedTo}>
-                  <SelectTrigger className="bg-muted/30 border-muted-foreground/20 focus:bg-background transition-colors">
-                    <SelectValue placeholder="Select a team member" />
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Choose a team member" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="me">Me ({user.name})</SelectItem>
-                    {employees.map(emp => (
-                      <SelectItem key={emp.id} value={emp.user_id}>
-                        {emp.name} ({emp.role})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="me">🙋 Myself ({user.name})</SelectItem>
+                    {employees
+                      .filter(emp => emp.is_active && emp.user_id !== user.id)
+                      .map(emp => (
+                        <SelectItem key={emp.id} value={emp.user_id}>
+                          {emp.name} — {emp.employee_type}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Select a team member to assign this task to.</p>
+                <p className="text-xs text-muted-foreground">
+                  As an admin, you can assign this task to any active team member.
+                </p>
               </div>
             )}
           </div>
