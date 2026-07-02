@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X, Paperclip, Smile, Image as ImageIcon, FileText, ArrowLeft } from 'lucide-react';
+import { Send, Users, MessageSquare, Plus, Search, Info, MoreVertical, Pencil, Trash2, X, Paperclip, Smile, Image as ImageIcon, FileText, ArrowLeft, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import {
@@ -179,21 +179,31 @@ const Chat = () => {
 
     const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
 
+    const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior, block: 'end' });
+            // Fallback for some browsers where smooth scrolling gets interrupted
+            if (behavior === 'smooth') {
+                setTimeout(() => {
+                    scrollRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+                }, 300);
+            }
+        }
+    };
+
     // Force scroll to bottom when switching chats
     useEffect(() => {
-        if (scrollRef.current) {
-            setIsAtBottom(true);
-            setTimeout(() => {
-                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
-            }, 50);
-        }
+        setIsAtBottom(true);
+        setTimeout(() => {
+            scrollToBottom('auto');
+        }, 50);
     }, [selectedUser]);
 
     // Scroll to bottom when new messages arrive, IF we were already at bottom
     useEffect(() => {
-        if (scrollRef.current && isAtBottom) {
+        if (isAtBottom) {
             setTimeout(() => {
-                scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+                scrollToBottom('smooth');
             }, 50);
         }
     }, [lastMessageId]);
@@ -266,7 +276,7 @@ const Chat = () => {
             // Force scroll to bottom when sending a message
             setIsAtBottom(true);
             setTimeout(() => {
-                scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+                scrollToBottom('smooth');
             }, 100);
 
             // Immediately fetch messages to ensure it appears even if realtime lags
@@ -420,7 +430,7 @@ const Chat = () => {
 
             {/* Main Chat Area */}
             <div className={cn(
-                "flex-1 flex-col glass-card border-none rounded-2xl overflow-hidden shadow-xl",
+                "flex-1 flex-col glass-card border-none rounded-2xl overflow-hidden shadow-xl relative",
                 showMobileChat ? "flex" : "hidden md:flex"
             )}>
                 {/* Chat Header */}
@@ -618,8 +628,24 @@ const Chat = () => {
                     </div>
                 </ScrollArea>
 
+                {/* Scroll to Bottom Button */}
+                {!isAtBottom && (
+                    <div className="absolute bottom-28 right-6 z-40">
+                        <Button 
+                            size="icon" 
+                            className="rounded-full shadow-xl bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 animate-in slide-in-from-bottom-2 fade-in"
+                            onClick={() => {
+                                setIsAtBottom(true);
+                                scrollToBottom('smooth');
+                            }}
+                        >
+                            <ChevronDown className="h-5 w-5" />
+                        </Button>
+                    </div>
+                )}
+
                 {/* Input Area */}
-                <div className="p-4 bg-background border-t border-border/50 relative">
+                <div className="p-4 bg-background border-t border-border/50 relative z-50">
                     {showEmojiPicker && (
                         <div className="absolute bottom-20 left-4 z-50 shadow-xl rounded-xl border border-border">
                             <EmojiPicker onEmojiClick={handleEmojiClick} theme={"auto" as never} />
