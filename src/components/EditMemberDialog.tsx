@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatJoinDate, getMemberTitle, getTenure } from '@/lib/utils';
-import { CalendarDays, Clock, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Clock, ShieldCheck, Key } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface EditMemberDialogProps {
     member: ProfileWithRole;
@@ -16,8 +17,9 @@ interface EditMemberDialogProps {
 }
 
 const EditMemberDialog = ({ member, open, onOpenChange }: EditMemberDialogProps) => {
-    const { updateMember } = useData();
+    const { updateMember, updateMemberPassword } = useData();
     const [name, setName] = useState(member.name);
+    const [newPassword, setNewPassword] = useState('');
     const [empType, setEmpType] = useState<MemberType>(member.employee_type);
     const [createdDate, setCreatedDate] = useState(() => {
         // Assuming created_at is date string or timestamp string
@@ -35,6 +37,7 @@ const EditMemberDialog = ({ member, open, onOpenChange }: EditMemberDialogProps)
             if (member.created_at) {
                 setCreatedDate(new Date(member.created_at).toISOString().split('T')[0]);
             }
+            setNewPassword('');
         }
     }, [open, member]);
 
@@ -48,6 +51,16 @@ const EditMemberDialog = ({ member, open, onOpenChange }: EditMemberDialogProps)
                 employee_type: empType,
                 created_at: createdDate ? new Date(createdDate).toISOString() : member.created_at,
             });
+
+            if (newPassword.trim()) {
+                const passRes = await updateMemberPassword(member.user_id, newPassword.trim());
+                if (passRes.success) {
+                    toast({ title: 'Success', description: 'Password updated successfully.' });
+                } else {
+                    toast({ title: 'Error', description: passRes.error, variant: 'destructive' });
+                }
+            }
+
             onOpenChange(false);
         } finally {
             setSubmitting(false);
@@ -126,6 +139,18 @@ const EditMemberDialog = ({ member, open, onOpenChange }: EditMemberDialogProps)
                         <p className="text-xs text-muted-foreground mt-1">
                             Used to calculate tenure and seniority (e.g. Senior title).
                         </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-password">New Password (Optional)</Label>
+                        <Input
+                            id="edit-password"
+                            type="password"
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            placeholder="Leave blank to keep current password"
+                            className="bg-background/50"
+                        />
                     </div>
 
                     <DialogFooter className="mt-6">

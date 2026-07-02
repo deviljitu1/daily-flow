@@ -20,6 +20,7 @@ interface DataContextType {
   refreshMembers: () => Promise<void>;
   toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
   updateMember: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
+  updateMemberPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   deleteMember: (id: string) => Promise<void>;
 }
 
@@ -269,6 +270,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshMembers();
   };
 
+  const updateMemberPassword = async (userId: string, newPassword: string) => {
+    if (!user || user.role !== 'admin') return { success: false, error: 'Unauthorized' };
+    try {
+      const { data, error } = await supabase.functions.invoke('update-member-password', {
+        body: { target_user_id: userId, new_password: newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      return { success: false, error: error.message || 'Failed to update password' };
+    }
+  };
+
   const deleteMember = async (id: string) => {
     if (!user || user.role !== 'admin') return;
     const { data, error } = await supabase.functions.invoke('delete-employee', {
@@ -304,6 +320,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshMembers,
         toggleMemberActive,
         updateMember,
+        updateMemberPassword,
         deleteMember,
       }}
     >
