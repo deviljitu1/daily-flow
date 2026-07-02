@@ -271,16 +271,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteEmployee = async (id: string) => {
     if (!user || user.role !== 'admin') return;
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
-    if (error) {
-      console.error("Delete failed", error);
+    const { data, error } = await supabase.functions.invoke('delete-employee', {
+      body: { profile_id: id },
+    });
+    if (error || (data && (data as { error?: string }).error)) {
+      const msg = (data as { error?: string } | null)?.error || error?.message || 'Delete failed';
+      console.error('Delete failed', msg);
       toast({
-        title: "Cannot Delete Team Member",
-        description: "Ensure the employee has no associated tasks or data before deleting.",
-        variant: "destructive"
+        title: 'Cannot Delete Team Member',
+        description: msg,
+        variant: 'destructive',
       });
+      return;
     }
-    await refreshEmployees();
+    toast({ title: 'Team member deleted' });
+    await Promise.all([refreshEmployees(), refreshTasks()]);
   };
 
   return (
