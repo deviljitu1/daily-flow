@@ -49,6 +49,7 @@ const Chat = () => {
     const [showMobileChat, setShowMobileChat] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [groupUnreadCount, setGroupUnreadCount] = useState(0);
+    const [isAtBottom, setIsAtBottom] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Determine chat partner name for header
@@ -176,12 +177,33 @@ const Chat = () => {
         };
     }, [selectedUser, user]);
 
-    // Scroll to bottom
+    const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
+    // Force scroll to bottom when switching chats
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+            setIsAtBottom(true);
+            setTimeout(() => {
+                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
+            }, 50);
         }
-    }, [messages]);
+    }, [selectedUser]);
+
+    // Scroll to bottom when new messages arrive, IF we were already at bottom
+    useEffect(() => {
+        if (scrollRef.current && isAtBottom) {
+            setTimeout(() => {
+                scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        }
+    }, [lastMessageId]);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        // 100px threshold to be considered "at bottom"
+        const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 100; 
+        setIsAtBottom(isBottom);
+    };
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -240,6 +262,13 @@ const Chat = () => {
             setNewMessage('');
             setSelectedFile(null);
             setShowEmojiPicker(false);
+            
+            // Force scroll to bottom when sending a message
+            setIsAtBottom(true);
+            setTimeout(() => {
+                scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+
             // Immediately fetch messages to ensure it appears even if realtime lags
             await fetchMessages();
         } catch (error) {
@@ -460,7 +489,10 @@ const Chat = () => {
                 </div>
 
                 {/* Messages Area */}
-                <ScrollArea className="flex-1 p-4 md:p-6 bg-slate-50/50 dark:bg-slate-900/20">
+                <ScrollArea 
+                    className="flex-1 p-4 md:p-6 bg-slate-50/50 dark:bg-slate-900/20"
+                    onScroll={handleScroll}
+                >
                     <div className="space-y-2 max-w-3xl mx-auto">
                         {messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-center animate-in fade-in zoom-in-95 duration-500">
