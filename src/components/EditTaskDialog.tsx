@@ -16,7 +16,7 @@ interface EditTaskDialogProps {
 }
 
 const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
-    const { updateTask, employees } = useData();
+    const { updateTask, members } = useData();
     const { user } = useAuth();
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
@@ -132,7 +132,7 @@ const EditTaskDialog = ({ task, open, onOpenChange }: EditTaskDialogProps) => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {employees
+                                    {members
                                         .filter(emp => emp.is_active)
                                         .map(emp => (
                                             <SelectItem key={emp.id} value={emp.user_id}>

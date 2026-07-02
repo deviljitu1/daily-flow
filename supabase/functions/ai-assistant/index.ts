@@ -43,6 +43,10 @@ const tools = [
             type: 'string',
             enum: ['Development', 'Design', 'Marketing', 'Content', 'SEO', 'Sales', 'Meeting', 'Other'],
           },
+          assigned_to: {
+            type: 'string',
+            description: 'Optional. Name of the member to assign this task to. Only use if the user asks to assign it to someone else.'
+          }
         },
         required: ['title', 'category'],
       },
@@ -100,10 +104,24 @@ async function executeTool(name: string, args: Record<string, unknown>, supabase
     }
     case 'create_task': {
       const today = new Date().toISOString().split('T')[0]
+      let targetUserId = userId;
+      
+      const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
+      const isAdmin = roleData?.role === 'admin';
+
+      if (args.assigned_to && isAdmin) {
+        const { data: profiles } = await supabase.from('profiles').select('id, name');
+        const assignedToName = String(args.assigned_to).toLowerCase();
+        const member = (profiles || []).find(p => p.name.toLowerCase() === assignedToName || p.name.toLowerCase().includes(assignedToName));
+        if (member) {
+          targetUserId = member.id;
+        }
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
-          user_id: userId,
+          user_id: targetUserId,
           title: args.title,
           description: args.description || '',
           category: args.category || 'Other',
@@ -224,6 +242,15 @@ Deno.serve(async (req) => {
       ? `Be hilarious, sarcastic, and full of dad jokes. Roast their procrastination gently. Use 😂 🙃 🔥 liberally.`
       : `Be warm, encouraging, and motivating. Celebrate small wins.`
 
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
+    const isAdmin = roleData?.role === 'admin';
+    let adminInstructions = `You can only create tasks for yourself. Ignore any requests to assign tasks to other members.`;
+    if (isAdmin) {
+      const { data: profiles } = await supabase.from('profiles').select('id, name');
+      const memberNames = (profiles || []).map(p => p.name).join(', ');
+      adminInstructions = `As an admin, you can assign tasks to other members using the 'assigned_to' parameter. Available members: ${memberNames}.`;
+    }
+
     const systemPrompt = `You are Luna 🌙 — a cute, ${personality || 'friendly'} AI sidekick built into ${userName || 'the user'}'s work tracker app. Today is ${today}.
 
 PERSONALITY:
@@ -241,7 +268,8 @@ RULES:
 - Never invent task IDs. Always look them up.
 - If multiple tasks match a fuzzy name, ask which one.
 - If they ask to do something on a Finished task, gently refuse — it's locked.
-- Keep responses concise. No walls of text.`
+- Keep responses concise. No walls of text.
+- ${adminInstructions}`
 
     const conversation: ChatMessage[] = [
       { role: 'system', content: systemPrompt },

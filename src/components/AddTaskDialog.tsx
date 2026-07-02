@@ -14,7 +14,7 @@ import { Plus } from 'lucide-react';
 
 const AddTaskDialog = () => {
   const { user } = useAuth();
-  const { addTask, employees } = useData();
+  const { addTask, members } = useData();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -150,7 +150,7 @@ const AddTaskDialog = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="me">🙋 Myself ({user.name})</SelectItem>
-                    {employees
+                    {members
                       .filter(emp => emp.is_active && emp.user_id !== user.id)
                       .map(emp => (
                         <SelectItem key={emp.id} value={emp.user_id}>

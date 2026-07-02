@@ -9,7 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import Employees from "@/pages/Employees";
+import Members from "@/pages/Members";
 import TeamStatus from "@/pages/TeamStatus";
 import Chat from "@/pages/Chat";
 import NotFound from "@/pages/NotFound";
@@ -29,7 +29,7 @@ const App = () => (
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/employees" element={<Employees />} />
+                  <Route path="/members" element={<Members />} />
                   <Route path="/team-status" element={<TeamStatus />} />
                   <Route path="/chat" element={<Chat />} />
                 </Route>

@@ -77,7 +77,7 @@ export function getTenure(dateStr?: string): string {
   return `${years} years`;
 }
 
-export function getEmployeeTitle(role: string, joinedAt?: string): string {
+export function getMemberTitle(role: string, joinedAt?: string): string {
   if (!joinedAt) return role;
   const date = new Date(joinedAt);
   const now = new Date();

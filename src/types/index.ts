@@ -1,6 +1,6 @@
 import { Tables, Enums } from '@/integrations/supabase/types';
 
-export type EmployeeType = Enums<'employee_type'>;
+export type MemberType = Enums<'employee_type'>;
 export type TaskStatus = Enums<'task_status'>;
 export type AppRole = Enums<'app_role'>;
 
@@ -21,12 +21,12 @@ export interface AuthUser {
   userId: string;
   name: string;
   email: string;
-  employeeType: EmployeeType;
+  memberType: MemberType;
   isActive: boolean;
   role: AppRole;
 }
 
-export const EMPLOYEE_TYPES: EmployeeType[] = [
+export const MEMBER_TYPES: MemberType[] = [
   'Developer',
   'Graphic Designer',
   'Digital Marketer',

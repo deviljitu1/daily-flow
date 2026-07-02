@@ -37,7 +37,7 @@ interface Message {
 
 const Chat = () => {
     const { user } = useAuth();
-    const { employees } = useData(); // We need employee list for 1:1 chat selection
+    const { members } = useData(); // We need member list for 1:1 chat selection
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [selectedUser, setSelectedUser] = useState<string | null>(null); // null = Group Chat
@@ -53,7 +53,7 @@ const Chat = () => {
 
     // Determine chat partner name for header
     const chatPartner = selectedUser
-        ? employees.find(e => e.user_id === selectedUser)
+        ? members.find(e => e.user_id === selectedUser)
         : null;
 
     const fetchMessages = async () => {
@@ -294,7 +294,7 @@ const Chat = () => {
         setNewMessage('');
     };
 
-    const filteredEmployees = employees
+    const filteredMembers = members
         .filter(emp => emp.user_id !== user?.userId) // Don't chat with self
         .filter(emp => emp.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -353,7 +353,7 @@ const Chat = () => {
                         <p className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Direct Messages</p>
 
                         {/* Team Member List */}
-                        {filteredEmployees.map(emp => (
+                        {filteredMembers.map(emp => (
                             <button
                                 key={emp.user_id}
                                 onClick={() => {
@@ -423,7 +423,7 @@ const Chat = () => {
                             <div className="flex-1">
                                 <h3 className="font-bold text-lg leading-none">Team Group Chat</h3>
                                 <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:underline" onClick={() => document.getElementById('view-members-trigger')?.click()}>
-                                    General discussion for all {employees.length} members
+                                    General discussion for all {members.length} members
                                 </p>
                             </div>
                             <Dialog>
@@ -434,11 +434,11 @@ const Chat = () => {
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-md">
                                     <DialogHeader>
-                                        <DialogTitle>Team Members ({employees.length})</DialogTitle>
+                                        <DialogTitle>Team Members ({members.length})</DialogTitle>
                                     </DialogHeader>
                                     <ScrollArea className="h-72 pr-4">
                                         <div className="space-y-3">
-                                            {employees.map(emp => (
+                                            {members.map(emp => (
                                                 <div key={emp.user_id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg">
                                                     <Avatar className="h-8 w-8">
                                                         <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.name}`} />

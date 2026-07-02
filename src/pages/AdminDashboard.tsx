@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { todayStr, getElapsedMs, formatDuration, getGreeting } from '@/lib/utils';
-import { EMPLOYEE_TYPES, TaskStatus } from '@/types';
+import { MEMBER_TYPES, TaskStatus } from '@/types';
 import TaskCard from '@/components/TaskCard';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import StatCard from '@/components/StatCard';
@@ -13,7 +13,7 @@ import DashboardCharts from '@/components/DashboardCharts';
 import { Button } from '@/components/ui/button';
 
 const AdminDashboard = () => {
-  const { employees, tasks, loading } = useData();
+  const { members, tasks, loading } = useData();
   const today = todayStr();
   const [time, setTime] = useState(new Date());
 
@@ -25,23 +25,23 @@ const AdminDashboard = () => {
 
 
   const [dateFilter, setDateFilter] = useState(today);
-  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [memberFilter, setMemberFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Update department filter when employee changes
+  // Update department filter when member changes
   useEffect(() => {
-    if (employeeFilter !== 'all') {
-      const selectedEmp = employees.find(e => e.user_id === employeeFilter);
+    if (memberFilter !== 'all') {
+      const selectedEmp = members.find(e => e.user_id === memberFilter);
       if (selectedEmp) {
         setTypeFilter(selectedEmp.employee_type);
       }
     } else {
       setTypeFilter('all');
     }
-  }, [employeeFilter, employees]);
+  }, [memberFilter, members]);
 
-  const activeEmployees = employees.filter(e => e.is_active && e.role === 'employee');
+  const activeMembers = members.filter(e => e.is_active && e.role === 'employee');
   const todayTasks = tasks.filter(t => t.date === today);
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
   const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
@@ -52,22 +52,22 @@ const AdminDashboard = () => {
   // Actually the filteredTasks calculation was below this block in original file, let's restore it too.
   let filteredTasks = [...tasks];
   if (dateFilter) filteredTasks = filteredTasks.filter(t => t.date === dateFilter);
-  if (employeeFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.user_id === employeeFilter);
+  if (memberFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.user_id === memberFilter);
   if (typeFilter !== 'all') {
-    const empIds = employees.filter(e => e.employee_type === typeFilter).map(e => e.user_id);
+    const empIds = members.filter(e => e.employee_type === typeFilter).map(e => e.user_id);
     filteredTasks = filteredTasks.filter(t => empIds.includes(t.user_id));
   }
   if (statusFilter !== 'all') filteredTasks = filteredTasks.filter(t => t.status === (statusFilter as TaskStatus));
 
-  const getEmployeeName = (userId: string) => {
-    const emp = employees.find(e => e.user_id === userId);
+  const getMemberName = (userId: string) => {
+    const emp = members.find(e => e.user_id === userId);
     return emp ? `${emp.name} (${emp.employee_type})` : 'Unknown';
   };
 
   const downloadCSV = () => {
     const headers = ['Task Title', 'Description', 'Category', 'Date', 'Status', 'Team Member', 'Duration (mins)'];
     const rows = filteredTasks.map(t => {
-      const emp = employees.find(e => e.user_id === t.user_id);
+      const emp = members.find(e => e.user_id === t.user_id);
       const duration = Math.round(getElapsedMs(t.time_sessions) / 60000);
       return [
         `"${t.title.replace(/"/g, '""')}"`,
@@ -121,7 +121,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* ... stats ... */}
-        <StatCard icon={Users} label="Active Team Members" value={activeEmployees.length} />
+        <StatCard icon={Users} label="Active Team Members" value={activeMembers.length} />
         <StatCard icon={ClipboardList} label="Tasks Today" value={todayTasks.length} />
         <StatCard icon={CheckCircle} label="Completed Today" value={completedToday} />
         <StatCard icon={Clock} label="Total Hours Today" value={formatDuration(totalTimeToday)} />
@@ -148,13 +148,13 @@ const AdminDashboard = () => {
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Team Member</Label>
-            <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <Select value={memberFilter} onValueChange={setMemberFilter}>
               <SelectTrigger className="bg-background/50 border-input/50">
                 <SelectValue placeholder="All Team Members" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Team Members</SelectItem>
-                {employees
+                {members
                   .filter(e => e.role === 'employee')
                   .map(e => (
                     <SelectItem key={e.user_id} value={e.user_id}>
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {EMPLOYEE_TYPES.map(t => (
+                {MEMBER_TYPES.map(t => (
                   <SelectItem key={t} value={t}>
                     {t}
                   </SelectItem>
@@ -215,7 +215,7 @@ const AdminDashboard = () => {
         ) : (
           <div className="grid gap-4">
             {filteredTasks.map(task => (
-              <TaskCard key={task.id} task={task} showUser={getEmployeeName(task.user_id)} readOnly />
+              <TaskCard key={task.id} task={task} showUser={getMemberName(task.user_id)} readOnly />
             ))}
           </div>
         )}

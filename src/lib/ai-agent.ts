@@ -19,7 +19,8 @@ export const AI_TOOLS = [
             description: "Category of the task",
             enum: TASK_CATEGORIES 
           },
-          target_minutes: { type: "number", description: "Optional target time in minutes (acts as a reminder)" }
+          target_minutes: { type: "number", description: "Optional target time in minutes (acts as a reminder)" },
+          assigned_to: { type: "string", description: "Optional. Name of the member to assign this task to. Only use if the user asks to assign it to someone else." }
         },
         required: ["title", "category"],
       },
@@ -59,7 +60,7 @@ export const AI_TOOLS = [
 
 export type AIPersona = 'Professional' | 'Jarvis' | 'Funny' | 'Flirty';
 
-export const generateSystemPrompt = (userName: string, tasks: TaskWithSessions[], persona: AIPersona = 'Professional') => {
+export const generateSystemPrompt = (userName: string, userRole: string, members: any[], tasks: TaskWithSessions[], persona: AIPersona = 'Professional') => {
   const currentTasks = tasks.map(t => 
     `- [${t.id}] ${t.title} (${t.status}) - Target: ${t.target_minutes || 'None'} min`
   ).join('\n');
@@ -74,12 +75,14 @@ export const generateSystemPrompt = (userName: string, tasks: TaskWithSessions[]
   }
 
   return `
-You are a helpful and smart AI Assistant for WorkTracker, built specifically to help employees manage their tasks.
+You are a helpful and smart AI Assistant for WorkTracker, built specifically to help members manage their tasks.
 You are currently helping ${userName}.
 
 Your goal is to help them organize their day, create tasks, set reminders (target minutes), and delete tasks if requested.
 When a user asks you to create a task, infer the best category from: ${TASK_CATEGORIES.join(', ')}. If no category fits, use 'Other'.
 When a user asks to set a reminder or time limit, use the 'update_task' tool to set 'target_minutes'.
+
+${userRole === 'admin' ? `As an admin, you can assign tasks to other members using the 'assigned_to' parameter. Available members: ${members.map((e: any) => e.name).join(', ')}.` : `You can only create tasks for yourself. Ignore any requests to assign tasks to other members.`}
 
 Here are their current tasks (with IDs):
 ${currentTasks || 'No current tasks.'}

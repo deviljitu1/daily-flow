@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { EMPLOYEE_TYPES, EmployeeType, ProfileWithRole } from '@/types';
+import { MEMBER_TYPES, MemberType, ProfileWithRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,25 +13,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, UserCheck, UserX, Search, User, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getEmployeeTitle } from '@/lib/utils';
-import EditEmployeeDialog from '@/components/EditEmployeeDialog';
+import { getMemberTitle } from '@/lib/utils';
+import EditMemberDialog from '@/components/EditMemberDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-const Employees = () => {
-  const { employees, toggleEmployeeActive, refreshEmployees, loading, deleteEmployee } = useData();
+const Members = () => {
+  const { members, toggleMemberActive, refreshMembers, loading, deleteMember } = useData();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [empType, setEmpType] = useState<EmployeeType>('Developer');
+  const [empType, setEmpType] = useState<MemberType>('Developer');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [editingEmployee, setEditingEmployee] = useState<ProfileWithRole | null>(null);
-  const [deletingEmployee, setDeletingEmployee] = useState<ProfileWithRole | null>(null);
+  const [editingMember, setEditingMember] = useState<ProfileWithRole | null>(null);
+  const [deletingMember, setDeletingMember] = useState<ProfileWithRole | null>(null);
 
-  const employeeList = employees
+  const memberList = members
     .filter(e => e.role === 'employee')
     .filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -66,22 +66,22 @@ const Employees = () => {
       setPassword('');
       setEmpType('Developer');
       setOpen(false);
-      await refreshEmployees();
+      await refreshMembers();
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleToggle = async (profileId: string, currentActive: boolean) => {
-    await toggleEmployeeActive(profileId, !currentActive);
+    await toggleMemberActive(profileId, !currentActive);
   };
 
   const handleDelete = async () => {
-    if (!deletingEmployee) return;
+    if (!deletingMember) return;
     try {
-      await deleteEmployee(deletingEmployee.id);
+      await deleteMember(deletingMember.id);
       toast({ title: 'Success', description: 'Team member deleted successfully' });
-      setDeletingEmployee(null);
+      setDeletingMember(null);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete team member', variant: 'destructive' });
     }
@@ -156,7 +156,7 @@ const Employees = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEE_TYPES.map(t => (
+                    {MEMBER_TYPES.map(t => (
                       <SelectItem key={t} value={t}>
                         {t}
                       </SelectItem>
@@ -202,7 +202,7 @@ const Employees = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employeeList.length === 0 ? (
+                {memberList.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
@@ -212,7 +212,7 @@ const Employees = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  employeeList.map((emp) => (
+                  memberList.map((emp) => (
                     <TableRow key={emp.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
@@ -223,7 +223,7 @@ const Employees = () => {
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">{emp.name}</span>
                             <span className="text-xs text-muted-foreground">
-                              {getEmployeeTitle(emp.employee_type, emp.created_at)}
+                              {getMemberTitle(emp.employee_type, emp.created_at)}
                             </span>
                           </div>
                         </div>
@@ -249,7 +249,7 @@ const Employees = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingEmployee(emp)}>
+                            <DropdownMenuItem onClick={() => setEditingMember(emp)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit Details
                             </DropdownMenuItem>
@@ -266,7 +266,7 @@ const Employees = () => {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setDeletingEmployee(emp)} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onClick={() => setDeletingMember(emp)} className="text-destructive focus:text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Team Member
                             </DropdownMenuItem>
@@ -282,21 +282,21 @@ const Employees = () => {
         </CardContent>
       </Card>
 
-      {editingEmployee && (
-        <EditEmployeeDialog
-          employee={editingEmployee}
-          open={!!editingEmployee}
-          onOpenChange={(open) => !open && setEditingEmployee(null)}
+      {editingMember && (
+        <EditMemberDialog
+          member={editingMember}
+          open={!!editingMember}
+          onOpenChange={(open) => !open && setEditingMember(null)}
         />
       )}
 
-      <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
+      <AlertDialog open={!!deletingMember} onOpenChange={(open) => !open && setDeletingMember(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete
-              <span className="font-semibold text-foreground"> {deletingEmployee?.name}</span> and remove all associated data.
+              <span className="font-semibold text-foreground"> {deletingMember?.name}</span> and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -312,4 +312,4 @@ const Employees = () => {
   );
 };
 
-export default Employees;
+export default Members;

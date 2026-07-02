@@ -65,7 +65,7 @@ export const AIAssistantWidget = () => {
   };
   
   const { user } = useAuth();
-  const { tasks, addTask, deleteTask, updateTask } = useData();
+  const { tasks, members, addTask, deleteTask, updateTask } = useData();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export const AIAssistantWidget = () => {
     try {
       const groq = getGroqClient();
       
-      const systemPrompt = generateSystemPrompt(user.name, tasks, persona);
+      const systemPrompt = generateSystemPrompt(user.name, user.role, members, tasks, persona);
       
       const groqMessages = [
         { role: 'system', content: systemPrompt },
@@ -115,13 +115,21 @@ export const AIAssistantWidget = () => {
           
           try {
             if (toolCall.function.name === 'create_task') {
+              let targetUserId = user.userId;
+              if (args.assigned_to && user.role === 'admin') {
+                const member = members.find(e => e.name.toLowerCase() === args.assigned_to.toLowerCase() || e.name.toLowerCase().includes(args.assigned_to.toLowerCase()));
+                if (member) {
+                  targetUserId = member.user_id;
+                }
+              }
+
               await addTask({
                 title: args.title,
                 description: args.description || '',
                 category: args.category || 'Other',
                 date: todayStr(),
                 target_minutes: args.target_minutes,
-                user_id: user.userId
+                user_id: targetUserId
               });
               resultStr = "Task created successfully.";
             } 

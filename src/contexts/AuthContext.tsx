@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthUser, AppRole, EmployeeType } from '@/types';
+import { AuthUser, AppRole, MemberType } from '@/types';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             userId: profile.user_id,
             name: profile.name,
             email: session.user.email || '',
-            employeeType: (profile.employee_type as EmployeeType) || 'Other',
+            memberType: (profile.employee_type as MemberType) || 'Other',
             isActive: profile.is_active,
             role: (roleData?.role as AppRole) || 'employee',
           });

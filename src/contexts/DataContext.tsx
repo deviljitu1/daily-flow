@@ -7,7 +7,7 @@ import { getElapsedMs } from '@/lib/utils';
 import { getNotificationPrefs, playNotificationSound } from '@/lib/notifications';
 
 interface DataContextType {
-  employees: ProfileWithRole[];
+  members: ProfileWithRole[];
   tasks: TaskWithSessions[];
   loading: boolean;
   addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => Promise<void>;
@@ -17,10 +17,10 @@ interface DataContextType {
   pauseTimer: (taskId: string) => Promise<void>;
   finishTask: (taskId: string) => Promise<void>;
   refreshTasks: () => Promise<void>;
-  refreshEmployees: () => Promise<void>;
-  toggleEmployeeActive: (profileId: string, isActive: boolean) => Promise<void>;
-  updateEmployee: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
-  deleteEmployee: (id: string) => Promise<void>;
+  refreshMembers: () => Promise<void>;
+  toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
+  updateMember: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
+  deleteMember: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -33,7 +33,7 @@ export const useData = () => {
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [employees, setEmployees] = useState<ProfileWithRole[]>([]);
+  const [members, setMembers] = useState<ProfileWithRole[]>([]);
   const [tasks, setTasks] = useState<TaskWithSessions[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +59,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTasks((data as unknown as TaskWithSessions[]) || []);
   }, [user]);
 
-  const refreshEmployees = useCallback(async () => {
+  const refreshMembers = useCallback(async () => {
     if (!user) return;
 
     const { data: profiles } = await supabase.from('profiles').select('*');
@@ -80,19 +80,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: (roles.find(r => r.user_id === p.user_id)?.role as AppRole) || 'employee',
     }));
 
-    setEmployees(withRoles);
+    setMembers(withRoles);
   }, [user]);
 
   useEffect(() => {
     if (user) {
       setLoading(true);
-      Promise.all([refreshTasks(), refreshEmployees()]).finally(() => setLoading(false));
+      Promise.all([refreshTasks(), refreshMembers()]).finally(() => setLoading(false));
     } else {
       setTasks([]);
-      setEmployees([]);
+      setMembers([]);
       setLoading(false);
     }
-  }, [user, refreshTasks, refreshEmployees]);
+  }, [user, refreshTasks, refreshMembers]);
 
   // Ref to track notified tasks to avoid spam
   const notifiedTasks = useRef<Record<string, Set<number>>>({});
@@ -236,7 +236,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshTasks();
   }, [tasks, refreshTasks]);
 
-  const toggleEmployeeActive = async (profileId: string, isActive: boolean) => {
+  const toggleMemberActive = async (profileId: string, isActive: boolean) => {
     if (!user || user.role !== 'admin') return;
     const { error } = await supabase
       .from('profiles')
@@ -246,16 +246,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) {
       toast({
         title: "Error",
-        description: "Failed to update employee status.",
+        description: "Failed to update member status.",
         variant: "destructive"
       });
       return;
     }
-    await refreshEmployees();
+    await refreshMembers();
   };
 
-  /* New updateEmployee function */
-  const updateEmployee = async (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => {
+  /* New updateMember function */
+  const updateMember = async (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => {
     if (!user || user.role !== 'admin') return;
     const { error } = await supabase
       .from('profiles')
@@ -263,13 +263,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating employee:', error);
-      toast({ title: "Error", description: "Failed to update employee.", variant: "destructive" });
+      console.error('Error updating member:', error);
+      toast({ title: "Error", description: "Failed to update member.", variant: "destructive" });
     }
-    await refreshEmployees();
+    await refreshMembers();
   };
 
-  const deleteEmployee = async (id: string) => {
+  const deleteMember = async (id: string) => {
     if (!user || user.role !== 'admin') return;
     const { data, error } = await supabase.functions.invoke('delete-employee', {
       body: { profile_id: id },
@@ -285,13 +285,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     toast({ title: 'Team member deleted' });
-    await Promise.all([refreshEmployees(), refreshTasks()]);
+    await Promise.all([refreshMembers(), refreshTasks()]);
   };
 
   return (
     <DataContext.Provider
       value={{
-        employees,
+        members,
         tasks,
         loading,
         addTask,
@@ -301,10 +301,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pauseTimer,
         finishTask,
         refreshTasks,
-        refreshEmployees,
-        toggleEmployeeActive,
-        updateEmployee,
-        deleteEmployee,
+        refreshMembers,
+        toggleMemberActive,
+        updateMember,
+        deleteMember,
       }}
     >
       {children}

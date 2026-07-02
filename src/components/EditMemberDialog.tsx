@@ -1,28 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { EMPLOYEE_TYPES, EmployeeType, ProfileWithRole } from '@/types';
+import { MEMBER_TYPES, MemberType, ProfileWithRole } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatJoinDate, getEmployeeTitle, getTenure } from '@/lib/utils';
+import { formatJoinDate, getMemberTitle, getTenure } from '@/lib/utils';
 import { CalendarDays, Clock, ShieldCheck } from 'lucide-react';
 
-interface EditEmployeeDialogProps {
-    employee: ProfileWithRole;
+interface EditMemberDialogProps {
+    member: ProfileWithRole;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialogProps) => {
-    const { updateEmployee } = useData();
-    const [name, setName] = useState(employee.name);
-    const [empType, setEmpType] = useState<EmployeeType>(employee.employee_type);
+const EditMemberDialog = ({ member, open, onOpenChange }: EditMemberDialogProps) => {
+    const { updateMember } = useData();
+    const [name, setName] = useState(member.name);
+    const [empType, setEmpType] = useState<MemberType>(member.employee_type);
     const [createdDate, setCreatedDate] = useState(() => {
         // Assuming created_at is date string or timestamp string
-        if (employee.created_at) {
-            return new Date(employee.created_at).toISOString().split('T')[0];
+        if (member.created_at) {
+            return new Date(member.created_at).toISOString().split('T')[0];
         }
         return '';
     });
@@ -30,23 +30,23 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
 
     useEffect(() => {
         if (open) {
-            setName(employee.name);
-            setEmpType(employee.employee_type);
-            if (employee.created_at) {
-                setCreatedDate(new Date(employee.created_at).toISOString().split('T')[0]);
+            setName(member.name);
+            setEmpType(member.employee_type);
+            if (member.created_at) {
+                setCreatedDate(new Date(member.created_at).toISOString().split('T')[0]);
             }
         }
-    }, [open, employee]);
+    }, [open, member]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) return;
         setSubmitting(true);
         try {
-            await updateEmployee(employee.id, {
+            await updateMember(member.id, {
                 name: name.trim(),
                 employee_type: empType,
-                created_at: createdDate ? new Date(createdDate).toISOString() : employee.created_at,
+                created_at: createdDate ? new Date(createdDate).toISOString() : member.created_at,
             });
             onOpenChange(false);
         } finally {
@@ -54,7 +54,7 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
         }
     };
 
-    const calculatedTitle = getEmployeeTitle(empType, createdDate); // Use local state for preview
+    const calculatedTitle = getMemberTitle(empType, createdDate); // Use local state for preview
     const tenure = getTenure(createdDate); // Use local state for preview
     const joinDate = formatJoinDate(createdDate); // Use local state for preview
 
@@ -96,12 +96,12 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
 
                     <div className="space-y-2">
                         <Label>Position</Label>
-                        <Select value={empType} onValueChange={v => setEmpType(v as EmployeeType)}>
+                        <Select value={empType} onValueChange={v => setEmpType(v as MemberType)}>
                             <SelectTrigger className="bg-background/50">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {EMPLOYEE_TYPES.map(t => (
+                                {MEMBER_TYPES.map(t => (
                                     <SelectItem key={t} value={t}>
                                         {t}
                                     </SelectItem>
@@ -142,4 +142,4 @@ const EditEmployeeDialog = ({ employee, open, onOpenChange }: EditEmployeeDialog
     );
 };
 
-export default EditEmployeeDialog;
+export default EditMemberDialog;

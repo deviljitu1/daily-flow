@@ -9,7 +9,7 @@ import { ClipboardList, CheckCircle2, Clock, CalendarRange } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardCharts from '@/components/DashboardCharts';
 
-const EmployeeDashboard = () => {
+const MemberDashboard = () => {
   const { user } = useAuth();
   const { tasks, loading } = useData();
   const today = todayStr();
@@ -20,19 +20,19 @@ const EmployeeDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Actually context already filters by user_id for employees, so `tasks` should be correct if backend logic holds.
-  const employeeTasks = tasks;
+  // Actually context already filters by user_id for members, so `tasks` should be correct if backend logic holds.
+  const memberTasks = tasks;
 
-  const todayTasks = employeeTasks.filter(t => t.date === today);
-  const ongoingTasks = employeeTasks.filter(t => t.status === 'In Progress');
-  const completedTasks = employeeTasks.filter(t => t.status === 'Finished');
+  const todayTasks = memberTasks.filter(t => t.date === today);
+  const ongoingTasks = memberTasks.filter(t => t.status === 'In Progress');
+  const completedTasks = memberTasks.filter(t => t.status === 'Finished');
   const completedToday = todayTasks.filter(t => t.status === 'Finished').length;
   const totalTimeToday = todayTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().split('T')[0];
-  const weekTasks = employeeTasks.filter(t => t.date >= weekStartStr && t.date <= today);
+  const weekTasks = memberTasks.filter(t => t.date >= weekStartStr && t.date <= today);
   const weeklyTime = weekTasks.reduce((sum, t) => sum + getElapsedMs(t.time_sessions), 0);
 
   if (loading) {
@@ -70,7 +70,7 @@ const EmployeeDashboard = () => {
       </div>
 
       <div className="mb-8">
-        <DashboardCharts tasks={employeeTasks} />
+        <DashboardCharts tasks={memberTasks} />
       </div>
 
       <div className="glass-card rounded-xl p-6 border-none">
@@ -79,7 +79,7 @@ const EmployeeDashboard = () => {
             <TabsTrigger value="today" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Today ({todayTasks.length})</TabsTrigger>
             <TabsTrigger value="ongoing" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Ongoing ({ongoingTasks.length})</TabsTrigger>
             <TabsTrigger value="completed" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Completed ({completedTasks.length})</TabsTrigger>
-            <TabsTrigger value="all" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">All Tasks ({employeeTasks.length})</TabsTrigger>
+            <TabsTrigger value="all" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">All Tasks ({memberTasks.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="today" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -113,9 +113,9 @@ const EmployeeDashboard = () => {
           </TabsContent>
 
           <TabsContent value="all" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {hasTasks(employeeTasks) ? (
+            {hasTasks(memberTasks) ? (
               <div className="grid gap-4">
-                {employeeTasks.map(task => <TaskCard key={task.id} task={task} />)}
+                {memberTasks.map(task => <TaskCard key={task.id} task={task} />)}
               </div>
             ) : (
               <EmptyState message="You haven't created any tasks yet." />
@@ -139,4 +139,4 @@ const EmptyState = ({ message }: { message: string }) => (
 
 const hasTasks = (tasks: any[]) => tasks && tasks.length > 0;
 
-export default EmployeeDashboard;
+export default MemberDashboard;
