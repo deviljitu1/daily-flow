@@ -104,10 +104,12 @@ export type Database = {
       tasks: {
         Row: {
           category: string
+          completion_notes: string | null
           created_at: string
           date: string
           description: string | null
           id: string
+          project_link: string | null
           status: Database["public"]["Enums"]["task_status"]
           target_minutes: number | null
           title: string
@@ -116,10 +118,12 @@ export type Database = {
         }
         Insert: {
           category?: string
+          completion_notes?: string | null
           created_at?: string
           date?: string
           description?: string | null
           id?: string
+          project_link?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           target_minutes?: number | null
           title: string
@@ -128,10 +132,12 @@ export type Database = {
         }
         Update: {
           category?: string
+          completion_notes?: string | null
           created_at?: string
           date?: string
           description?: string | null
           id?: string
+          project_link?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           target_minutes?: number | null
           title?: string
