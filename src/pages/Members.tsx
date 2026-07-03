@@ -151,7 +151,7 @@ const Members = () => {
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={empType} onValueChange={v => setEmpType(v as EmployeeType)}>
+                <Select value={empType} onValueChange={v => setEmpType(v as MemberType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
