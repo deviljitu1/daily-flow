@@ -231,7 +231,7 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleAction(finishTask)}
+                  onClick={() => setShowFinish(true)}
                   disabled={actionLoading}
                   className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-all"
                 >
