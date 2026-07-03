@@ -246,6 +246,13 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
 
       <EditTaskDialog task={task} open={showEdit} onOpenChange={setShowEdit} />
 
+      <FinishTaskDialog
+        open={showFinish}
+        onOpenChange={setShowFinish}
+        taskTitle={task.title}
+        onConfirm={(details) => finishTask(task.id, details)}
+      />
+
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
