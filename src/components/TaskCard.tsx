@@ -9,6 +9,7 @@ import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Penc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
+import FinishTaskDialog from './FinishTaskDialog';
 
 const statusConfig: Record<TaskStatus, { className: string; label: string }> = {
   'Not Started': { className: 'bg-muted text-muted-foreground border-transparent', label: 'Not Started' },
