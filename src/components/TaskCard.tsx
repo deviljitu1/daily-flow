@@ -9,6 +9,7 @@ import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Penc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
+import FinishTaskDialog from './FinishTaskDialog';
 
 const statusConfig: Record<TaskStatus, { className: string; label: string }> = {
   'Not Started': { className: 'bg-muted text-muted-foreground border-transparent', label: 'Not Started' },
@@ -30,6 +31,7 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showFinish, setShowFinish] = useState(false);
 
   useEffect(() => {
     setElapsed(getElapsedMs(task.time_sessions));
@@ -229,7 +231,7 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleAction(finishTask)}
+                  onClick={() => setShowFinish(true)}
                   disabled={actionLoading}
                   className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-all"
                 >
@@ -243,6 +245,13 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
       </Card>
 
       <EditTaskDialog task={task} open={showEdit} onOpenChange={setShowEdit} />
+
+      <FinishTaskDialog
+        open={showFinish}
+        onOpenChange={setShowFinish}
+        taskTitle={task.title}
+        onConfirm={(details) => finishTask(task.id, details)}
+      />
 
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>

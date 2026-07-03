@@ -15,7 +15,7 @@ interface DataContextType {
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;
-  finishTask: (taskId: string) => Promise<void>;
+  finishTask: (taskId: string, details?: { completion_notes?: string; project_link?: string }) => Promise<void>;
   refreshTasks: () => Promise<void>;
   refreshMembers: () => Promise<void>;
   toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
@@ -223,7 +223,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshTasks();
   }, [tasks, refreshTasks]);
 
-  const finishTask = useCallback(async (taskId: string) => {
+  const finishTask = useCallback(async (taskId: string, details?: { completion_notes?: string; project_link?: string }) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
@@ -233,7 +233,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.from('time_sessions').update({ end_time: Date.now() }).eq('id', session.id);
     }
 
-    await supabase.from('tasks').update({ status: 'Finished' }).eq('id', taskId);
+    const updates: Record<string, unknown> = { status: 'Finished' };
+    if (details?.completion_notes) updates.completion_notes = details.completion_notes;
+    if (details?.project_link) updates.project_link = details.project_link;
+
+    await supabase.from('tasks').update(updates as never).eq('id', taskId);
     await refreshTasks();
   }, [tasks, refreshTasks]);
 
