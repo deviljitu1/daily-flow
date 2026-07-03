@@ -15,7 +15,7 @@ interface DataContextType {
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;
-  finishTask: (taskId: string) => Promise<void>;
+  finishTask: (taskId: string, details?: { completion_notes?: string; project_link?: string }) => Promise<void>;
   refreshTasks: () => Promise<void>;
   refreshMembers: () => Promise<void>;
   toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
