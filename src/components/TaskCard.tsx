@@ -31,6 +31,7 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showFinish, setShowFinish] = useState(false);
 
   useEffect(() => {
     setElapsed(getElapsedMs(task.time_sessions));
