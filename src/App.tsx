@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -13,6 +13,7 @@ import Members from "@/pages/Members";
 import TeamStatus from "@/pages/TeamStatus";
 import Chat from "@/pages/Chat";
 import NotFound from "@/pages/NotFound";
+import OAuthConsent from "@/pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -23,9 +24,10 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <DataProvider>
-          <HashRouter>
+          <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/" element={<Dashboard />} />
@@ -36,7 +38,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </HashRouter>
+          </BrowserRouter>
         </DataProvider>
       </AuthProvider>
     </TooltipProvider>

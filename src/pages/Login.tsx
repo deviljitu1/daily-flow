@@ -1,5 +1,14 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
+
+const safeNext = (raw: string | null): string => {
+  if (!raw) return '/';
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (decoded.startsWith('/') && !decoded.startsWith('//')) return decoded;
+  } catch { /* ignore */ }
+  return '/';
+};
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +23,8 @@ const Login = () => {
   const [loginLoading, setLoginLoading] = useState(false);
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const nextPath = safeNext(params.get('next'));
 
 
   if (loading) {
@@ -24,7 +35,7 @@ const Login = () => {
     );
   }
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to={nextPath} replace />;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,7 +46,7 @@ const Login = () => {
       if (result.error) {
         setError(result.error);
       } else {
-        navigate('/');
+        navigate(nextPath);
       }
     } finally {
       setLoginLoading(false);
