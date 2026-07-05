@@ -98,9 +98,10 @@ const AdminDashboard = () => {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="sr-only">Admin Dashboard</h1>
+          <h2 className="text-3xl font-bold tracking-tight">
             {getGreeting()}, <span className="text-primary">Admin</span>
-          </h1>
+          </h2>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span>

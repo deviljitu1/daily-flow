@@ -339,6 +339,7 @@ const Chat = () => {
 
     return (
         <div className="flex h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
+            <h1 className="sr-only">Chat</h1>
             {/* Sidebar: Chat List */}
             <div className={cn(
                 "w-full md:w-80 flex-col glass-card border-none rounded-2xl overflow-hidden shrink-0",
@@ -440,6 +441,7 @@ const Chat = () => {
                         size="icon"
                         className="md:hidden mr-1"
                         onClick={() => setShowMobileChat(false)}
+                        aria-label="Back to chat list"
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
@@ -590,7 +592,7 @@ const Chat = () => {
                                                     <div className="absolute top-1 right-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-black/10 dark:hover:bg-white/10">
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-black/10 dark:hover:bg-white/10" aria-label="Message options">
                                                                     <MoreVertical className="h-3 w-3" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
@@ -638,6 +640,7 @@ const Chat = () => {
                                 setIsAtBottom(true);
                                 scrollToBottom('smooth');
                             }}
+                            aria-label="Scroll to bottom"
                         >
                             <ChevronDown className="h-5 w-5" />
                         </Button>
@@ -658,7 +661,7 @@ const Chat = () => {
                                 {selectedFile.type.startsWith('image/') ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                             </div>
                             <div className="max-w-[200px] truncate text-sm">{selectedFile.name}</div>
-                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
+                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedFile(null)} aria-label="Remove attachment">
                                 <X className="h-3 w-3" />
                             </Button>
                         </div>
@@ -678,6 +681,7 @@ const Chat = () => {
                             className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
                             onClick={() => fileInputRef.current?.click()}
                             title="Attach File"
+                            aria-label="Attach File"
                         >
                             <Paperclip className="h-5 w-5" />
                         </Button>
@@ -688,6 +692,7 @@ const Chat = () => {
                             className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                             title="Add Emoji"
+                            aria-label="Add Emoji"
                         >
                             <Smile className="h-5 w-5" />
                         </Button>
@@ -706,6 +711,7 @@ const Chat = () => {
                                 onClick={cancelEditing}
                                 className="rounded-full h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
                                 title="Cancel Edit"
+                                aria-label="Cancel Edit"
                             >
                                 <X className="h-4 w-4" />
                             </Button>

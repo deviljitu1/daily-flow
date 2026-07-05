@@ -47,9 +47,10 @@ const MemberDashboard = () => {
     <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="sr-only">Dashboard</h1>
+          <h2 className="text-3xl font-bold tracking-tight">
             {getGreeting()}, <span className="text-primary">{user?.name.split(' ')[0]}</span>
-          </h1>
+          </h2>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             <CalendarRange className="h-4 w-4" />
             <span>
