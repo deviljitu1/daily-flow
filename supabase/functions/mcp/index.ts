@@ -10,7 +10,9 @@ import { createClient } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
 function sb(ctx) {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -25,14 +27,30 @@ var list_my_tasks_default = defineTool({
     limit: z.number().int().min(1).max(200).optional()
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ date, status, limit }, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = sb(ctx).from("tasks").select("*").eq("user_id", ctx.getUserId()).order("created_at", { ascending: false }).limit(limit ?? 50);
-    if (date) q = q.eq("date", date);
-    if (status) q = q.eq("status", status);
-    const { data, error } = await q;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { tasks: data } };
+  handler: async (input, ctx) => {
+    try {
+      const { date, status, limit } = input;
+      console.log(`[Tool] list_my_tasks invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] list_my_tasks authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] list_my_tasks authenticated user ID:`, userId);
+      let q = sb(ctx).from("tasks").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit ?? 50);
+      if (date) q = q.eq("date", date);
+      if (status) q = q.eq("status", status);
+      const { data, error } = await q;
+      if (error) {
+        console.error(`[Tool] list_my_tasks Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      console.log(`[Tool] list_my_tasks execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { tasks: data } };
+    } catch (err) {
+      console.error(`[Tool] list_my_tasks unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
@@ -41,7 +59,9 @@ import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
 function sb2(ctx) {
-  return createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient2(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -59,18 +79,33 @@ var create_task_default = defineTool2({
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await sb2(ctx).from("tasks").insert({
-      user_id: ctx.getUserId(),
-      title: input.title,
-      description: input.description ?? null,
-      category: input.category ?? "Development",
-      date: input.date,
-      target_minutes: input.target_minutes ?? null,
-      status: "Not Started"
-    }).select().single();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
+    try {
+      console.log(`[Tool] create_task invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] create_task authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] create_task authenticated user ID:`, userId);
+      const { data, error } = await sb2(ctx).from("tasks").insert({
+        user_id: userId,
+        title: input.title,
+        description: input.description ?? null,
+        category: input.category ?? "Development",
+        date: input.date,
+        target_minutes: input.target_minutes ?? null,
+        status: "Not Started"
+      }).select().single();
+      if (error) {
+        console.error(`[Tool] create_task Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      console.log(`[Tool] create_task execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
+    } catch (err) {
+      console.error(`[Tool] create_task unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
@@ -79,7 +114,9 @@ import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z3 } from "npm:zod@^4.4.3";
 function sb3(ctx) {
-  return createClient3(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient3(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -94,16 +131,32 @@ var complete_task_default = defineTool3({
     project_link: z3.string().url().optional()
   },
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
-  handler: async ({ task_id, completion_notes, project_link }, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const client = sb3(ctx);
-    await client.from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null);
-    const updates = { status: "Finished" };
-    if (completion_notes) updates.completion_notes = completion_notes;
-    if (project_link) updates.project_link = project_link;
-    const { data, error } = await client.from("tasks").update(updates).eq("id", task_id).eq("user_id", ctx.getUserId()).select().single();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
+  handler: async (input, ctx) => {
+    try {
+      const { task_id, completion_notes, project_link } = input;
+      console.log(`[Tool] complete_task invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] complete_task authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] complete_task authenticated user ID:`, userId);
+      const client = sb3(ctx);
+      await client.from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null);
+      const updates = { status: "Finished", completion_notes: undefined, project_link: undefined };
+      if (completion_notes) updates.completion_notes = completion_notes;
+      if (project_link) updates.project_link = project_link;
+      const { data, error } = await client.from("tasks").update(updates).eq("id", task_id).eq("user_id", userId).select().single();
+      if (error) {
+        console.error(`[Tool] complete_task Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      console.log(`[Tool] complete_task execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
+    } catch (err) {
+      console.error(`[Tool] complete_task unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
@@ -112,7 +165,9 @@ import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z4 } from "npm:zod@^4.4.3";
 function sb4(ctx) {
-  return createClient4(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient4(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -123,14 +178,29 @@ var start_timer_default = defineTool4({
   description: "Start a time session on one of the signed-in user's tasks and set it to In Progress.",
   inputSchema: { task_id: z4.string().uuid() },
   annotations: { readOnlyHint: false, openWorldHint: false },
-  handler: async ({ task_id }, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const client = sb4(ctx);
-    const userId = ctx.getUserId();
-    const { data, error } = await client.from("time_sessions").insert({ task_id, start_time: (/* @__PURE__ */ new Date()).toISOString(), created_by: userId }).select().single();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    await client.from("tasks").update({ status: "In Progress" }).eq("id", task_id).eq("user_id", userId);
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { session: data } };
+  handler: async (input, ctx) => {
+    try {
+      const { task_id } = input;
+      console.log(`[Tool] start_timer invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] start_timer authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] start_timer authenticated user ID:`, userId);
+      const client = sb4(ctx);
+      const { data, error } = await client.from("time_sessions").insert({ task_id, start_time: (/* @__PURE__ */ new Date()).toISOString(), created_by: userId }).select().single();
+      if (error) {
+        console.error(`[Tool] start_timer Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      await client.from("tasks").update({ status: "In Progress" }).eq("id", task_id).eq("user_id", userId);
+      console.log(`[Tool] start_timer execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { session: data } };
+    } catch (err) {
+      console.error(`[Tool] start_timer unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
@@ -139,7 +209,9 @@ import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z5 } from "npm:zod@^4.4.3";
 function sb5(ctx) {
-  return createClient5(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient5(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -150,11 +222,27 @@ var stop_timer_default = defineTool5({
   description: "Stop the currently open time session on the signed-in user's task.",
   inputSchema: { task_id: z5.string().uuid() },
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
-  handler: async ({ task_id }, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await sb5(ctx).from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null).select();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { sessions: data } };
+  handler: async (input, ctx) => {
+    try {
+      const { task_id } = input;
+      console.log(`[Tool] stop_timer invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] stop_timer authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] stop_timer authenticated user ID:`, userId);
+      const { data, error } = await sb5(ctx).from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null).select();
+      if (error) {
+        console.error(`[Tool] stop_timer Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      console.log(`[Tool] stop_timer execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { sessions: data } };
+    } catch (err) {
+      console.error(`[Tool] stop_timer unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
@@ -162,7 +250,9 @@ var stop_timer_default = defineTool5({
 import { createClient as createClient6 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.20.0";
 function sb6(ctx) {
-  return createClient6(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
+  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  return createClient6(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -173,11 +263,26 @@ var team_activity_default = defineTool6({
   description: "Get the current team activity snapshot (admin only). Returns each member's active task and today's todo/progress/completed lists.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await sb6(ctx).rpc("get_team_activity");
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { activity: data } };
+  handler: async (input, ctx) => {
+    try {
+      console.log(`[Tool] team_activity invoked with input:`, JSON.stringify(input));
+      if (!ctx.isAuthenticated()) {
+        console.warn(`[Tool] team_activity authentication failed.`);
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      }
+      const userId = ctx.getUserId();
+      console.log(`[Tool] team_activity authenticated user ID:`, userId);
+      const { data, error } = await sb6(ctx).rpc("get_team_activity");
+      if (error) {
+        console.error(`[Tool] team_activity Supabase query error:`, error);
+        return { content: [{ type: "text", text: error.message }], isError: true };
+      }
+      console.log(`[Tool] team_activity execution successful.`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { activity: data } };
+    } catch (err) {
+      console.error(`[Tool] team_activity unhandled exception:`, err);
+      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+    }
   }
 });
 
