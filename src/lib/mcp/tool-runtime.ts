@@ -1,5 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { ToolContext, ToolHandlerResult } from "@lovable.dev/mcp-js";
+import type { ToolContext } from "@lovable.dev/mcp-js";
+
+declare const Deno: { env: { get: (name: string) => string | undefined } } | undefined;
+
+type ToolHandlerResult = {
+  content?: Array<{ type: "text"; text: string }>;
+  structuredContent?: Record<string, unknown>;
+  isError?: boolean;
+};
 
 type ToolHandler<TInput> = (input: TInput, runtime: ToolRuntime) => Promise<ToolHandlerResult>;
 
