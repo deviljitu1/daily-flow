@@ -1,16 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-
-function sb(ctx: ToolContext) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
-
-  return createClient(supabaseUrl!, supabaseKey!, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { runTool } from "../tool-runtime";
 
 export default defineTool({
   name: "start_timer",
@@ -18,40 +8,37 @@ export default defineTool({
   description: "Start a time session on one of the signed-in user's tasks and set it to In Progress.",
   inputSchema: { task_id: z.string().uuid() },
   annotations: { readOnlyHint: false, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      const { task_id } = input;
-      console.log(`[Tool] start_timer invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] start_timer authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      
-      const userId = ctx.getUserId()!;
-      console.log(`[Tool] start_timer authenticated user ID:`, userId);
-
-      const client = sb(ctx);
-      const { data, error } = await client
+  handler: async (input, ctx: ToolContext) => runTool("start_timer", input, ctx, async ({ task_id }, runtime) => {
+      const closeOtherSessions = await runtime.client
         .from("time_sessions")
-        .insert({ task_id, start_time: new Date().toISOString(), created_by: userId })
+        .update({ end_time: Date.now() })
+        .eq("created_by", runtime.userId)
+        .is("end_time", null)
+        .select();
+      runtime.logDbResult("start_timer.close_existing", closeOtherSessions);
+      if (closeOtherSessions.error) return runtime.fail(closeOtherSessions.error.message);
+
+      const result = await runtime.client
+        .from("time_sessions")
+        .insert({ task_id, start_time: Date.now(), created_by: runtime.userId })
         .select()
         .single();
+      runtime.logDbResult("start_timer.insert", result);
         
-      if (error) {
-        console.error(`[Tool] start_timer Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
+      if (result.error) {
+        return runtime.fail(result.error.message);
       }
       
-      await client.from("tasks").update({ status: "In Progress" }).eq("id", task_id).eq("user_id", userId);
+      const updateResult = await runtime.client
+        .from("tasks")
+        .update({ status: "In Progress" })
+        .eq("id", task_id)
+        .eq("user_id", runtime.userId)
+        .select()
+        .single();
+      runtime.logDbResult("start_timer.update_task", updateResult);
+      if (updateResult.error) return runtime.fail(updateResult.error.message);
       
-      console.log(`[Tool] start_timer execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { session: data } };
-    } catch (err) {
-      console.error(`[Tool] start_timer unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
-    }
-  },
+      return runtime.ok("Started timer", result.data, { session: result.data, task: updateResult.data });
+    }),
 });
