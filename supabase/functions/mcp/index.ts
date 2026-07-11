@@ -6,17 +6,109 @@
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/list-my-tasks.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
-function sb(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
+
+// src/lib/mcp/tool-runtime.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.110.0";
+var readRuntimeEnv = (name) => {
+  if (typeof Deno !== "undefined") return Deno.env.get(name) ?? void 0;
+  if (typeof process !== "undefined") return process.env[name];
+  return void 0;
+};
+var safeJson = (value) => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return `[unserializable: ${error instanceof Error ? error.message : String(error)}]`;
+  }
+};
+var errorMessage = (error) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) return String(error.message);
+  return String(error);
+};
+var errorStack = (error) => error instanceof Error ? error.stack : void 0;
+var getSupabaseConfig = () => {
+  const supabaseUrl = readRuntimeEnv("SUPABASE_URL") ?? "https://tbigtlfuittunagpyoxk.supabase.co";
+  const supabaseKey = readRuntimeEnv("SUPABASE_PUBLISHABLE_KEY") ?? readRuntimeEnv("SUPABASE_ANON_KEY") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaWd0bGZ1aXR0dW5hZ3B5b3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODM4MzcsImV4cCI6MjA4NjI1OTgzN30.9ZZfx3MjsudvnX4-mnFj4OIiQj-BQ-TuptTQB7r6iW8";
+  return { supabaseUrl, supabaseKey };
+};
+var createUserClient = (ctx) => {
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("MCP backend configuration is missing the database URL or publishable key.");
+  }
   return createClient(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
+};
+async function runTool(toolName, input, ctx, handler) {
+  const startedAt = Date.now();
+  try {
+    console.log(`[MCP:${toolName}] request.received`, {
+      input: safeJson(input),
+      hasToken: Boolean(ctx.getToken()),
+      tokenLength: ctx.getToken()?.length ?? 0,
+      userId: ctx.getUserId(),
+      userEmail: ctx.getUserEmail(),
+      clientId: ctx.getClientId(),
+      scopes: ctx.getScopes()
+    });
+    if (!ctx.isAuthenticated() || !ctx.getToken() || !ctx.getUserId()) {
+      console.warn(`[MCP:${toolName}] auth.failed`, { authenticated: ctx.isAuthenticated(), userId: ctx.getUserId() });
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const client = createUserClient(ctx);
+    const { data: userData, error: userError } = await client.auth.getUser(ctx.getToken());
+    if (userError || !userData.user) {
+      console.error(`[MCP:${toolName}] auth.getUser.failed`, {
+        message: userError?.message,
+        userId: ctx.getUserId(),
+        userEmail: ctx.getUserEmail()
+      });
+      return { content: [{ type: "text", text: userError?.message ?? "Could not resolve authenticated user" }], isError: true };
+    }
+    const runtime = {
+      ctx,
+      userId: ctx.getUserId(),
+      userEmail: userData.user.email ?? ctx.getUserEmail(),
+      client,
+      logDbResult: (operation, result2) => {
+        console.log(`[MCP:${toolName}] db.${operation}`, {
+          hasError: Boolean(result2.error),
+          error: result2.error ? errorMessage(result2.error) : void 0,
+          data: result2.error ? void 0 : safeJson(result2.data)
+        });
+      },
+      ok: (label, data, structuredContent) => {
+        const content = [{ type: "text", text: `${label}:
+${safeJson(data)}` }];
+        const response = { content, structuredContent };
+        console.log(`[MCP:${toolName}] response.ok`, { durationMs: Date.now() - startedAt, label });
+        return response;
+      },
+      fail: (message, details) => {
+        console.error(`[MCP:${toolName}] response.error`, { durationMs: Date.now() - startedAt, message, details });
+        return { content: [{ type: "text", text: message }], isError: true };
+      }
+    };
+    console.log(`[MCP:${toolName}] auth.ok`, { userId: runtime.userId, userEmail: runtime.userEmail });
+    const result = await handler(input, runtime);
+    console.log(`[MCP:${toolName}] response.returned`, { durationMs: Date.now() - startedAt, isError: Boolean(result.isError) });
+    return result;
+  } catch (error) {
+    console.error(`[MCP:${toolName}] exception`, {
+      durationMs: Date.now() - startedAt,
+      message: errorMessage(error),
+      stack: errorStack(error)
+    });
+    return { content: [{ type: "text", text: errorMessage(error) }], isError: true };
+  }
 }
+
+// src/lib/mcp/tools/list-my-tasks.ts
 var list_my_tasks_default = defineTool({
   name: "list_my_tasks",
   title: "List my tasks",
@@ -27,48 +119,22 @@ var list_my_tasks_default = defineTool({
     limit: z.number().int().min(1).max(200).optional()
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      const { date, status, limit } = input;
-      console.log(`[Tool] list_my_tasks invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] list_my_tasks authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] list_my_tasks authenticated user ID:`, userId);
-      let q = sb(ctx).from("tasks").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit ?? 50);
-      if (date) q = q.eq("date", date);
-      if (status) q = q.eq("status", status);
-      const { data, error } = await q;
-      if (error) {
-        console.error(`[Tool] list_my_tasks Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      console.log(`[Tool] list_my_tasks execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { tasks: data } };
-    } catch (err) {
-      console.error(`[Tool] list_my_tasks unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("list_my_tasks", input, ctx, async ({ date, status, limit }, runtime) => {
+    let q = runtime.client.from("tasks").select("*").eq("user_id", runtime.userId).order("created_at", { ascending: false }).limit(limit ?? 50);
+    if (date) q = q.eq("date", date);
+    if (status) q = q.eq("status", status);
+    const result = await q;
+    runtime.logDbResult("list_my_tasks.select", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    return runtime.ok("Tasks", result.data ?? [], { tasks: result.data ?? [] });
+  })
 });
 
 // src/lib/mcp/tools/create-task.ts
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
-function sb2(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
-  return createClient2(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 var create_task_default = defineTool2({
   name: "create_task",
   title: "Create task",
@@ -81,52 +147,27 @@ var create_task_default = defineTool2({
     target_minutes: z2.number().int().positive().optional()
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      console.log(`[Tool] create_task invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] create_task authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] create_task authenticated user ID:`, userId);
-      const { data, error } = await sb2(ctx).from("tasks").insert({
-        user_id: userId,
-        title: input.title,
-        description: input.description ?? null,
-        category: input.category ?? "Development",
-        date: input.date,
-        target_minutes: input.target_minutes ?? null,
-        status: "Not Started"
-      }).select().single();
-      if (error) {
-        console.error(`[Tool] create_task Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      console.log(`[Tool] create_task execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
-    } catch (err) {
-      console.error(`[Tool] create_task unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("create_task", input, ctx, async (args, runtime) => {
+    const result = await runtime.client.from("tasks").insert({
+      user_id: runtime.userId,
+      title: args.title,
+      description: args.description ?? null,
+      category: args.category ?? "Development",
+      date: args.date,
+      target_minutes: args.target_minutes ?? null,
+      status: "Not Started"
+    }).select().single();
+    runtime.logDbResult("create_task.insert", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    return runtime.ok("Created task", result.data, { task: result.data });
+  })
 });
 
 // src/lib/mcp/tools/complete-task.ts
-import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z3 } from "npm:zod@^4.4.3";
-function sb3(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
-  return createClient3(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 var complete_task_default = defineTool3({
   name: "complete_task",
   title: "Complete task",
@@ -137,171 +178,82 @@ var complete_task_default = defineTool3({
     project_link: z3.string().url().optional()
   },
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      const { task_id, completion_notes, project_link } = input;
-      console.log(`[Tool] complete_task invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] complete_task authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] complete_task authenticated user ID:`, userId);
-      const client = sb3(ctx);
-      await client.from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null);
-      const updates = { status: "Finished" };
-      if (completion_notes) updates.completion_notes = completion_notes;
-      if (project_link) updates.project_link = project_link;
-      const { data, error } = await client.from("tasks").update(updates).eq("id", task_id).eq("user_id", userId).select().single();
-      if (error) {
-        console.error(`[Tool] complete_task Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      console.log(`[Tool] complete_task execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
-    } catch (err) {
-      console.error(`[Tool] complete_task unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("complete_task", input, ctx, async ({ task_id, completion_notes, project_link }, runtime) => {
+    const stopResult = await runtime.client.from("time_sessions").update({ end_time: Date.now() }).eq("task_id", task_id).eq("created_by", runtime.userId).is("end_time", null).select();
+    runtime.logDbResult("complete_task.stop_open_sessions", stopResult);
+    if (stopResult.error) return runtime.fail(stopResult.error.message);
+    const updates = { status: "Finished" };
+    if (completion_notes) updates.completion_notes = completion_notes;
+    if (project_link) updates.project_link = project_link;
+    const result = await runtime.client.from("tasks").update(updates).eq("id", task_id).eq("user_id", runtime.userId).select().single();
+    runtime.logDbResult("complete_task.update", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    return runtime.ok("Completed task", result.data, { task: result.data, stopped_sessions: stopResult.data ?? [] });
+  })
 });
 
 // src/lib/mcp/tools/start-timer.ts
-import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z4 } from "npm:zod@^4.4.3";
-function sb4(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
-  return createClient4(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 var start_timer_default = defineTool4({
   name: "start_timer",
   title: "Start timer",
   description: "Start a time session on one of the signed-in user's tasks and set it to In Progress.",
   inputSchema: { task_id: z4.string().uuid() },
   annotations: { readOnlyHint: false, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      const { task_id } = input;
-      console.log(`[Tool] start_timer invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] start_timer authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] start_timer authenticated user ID:`, userId);
-      const client = sb4(ctx);
-      const { data, error } = await client.from("time_sessions").insert({ task_id, start_time: (/* @__PURE__ */ new Date()).toISOString(), created_by: userId }).select().single();
-      if (error) {
-        console.error(`[Tool] start_timer Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      await client.from("tasks").update({ status: "In Progress" }).eq("id", task_id).eq("user_id", userId);
-      console.log(`[Tool] start_timer execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { session: data } };
-    } catch (err) {
-      console.error(`[Tool] start_timer unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("start_timer", input, ctx, async ({ task_id }, runtime) => {
+    const closeOtherSessions = await runtime.client.from("time_sessions").update({ end_time: Date.now() }).eq("created_by", runtime.userId).is("end_time", null).select();
+    runtime.logDbResult("start_timer.close_existing", closeOtherSessions);
+    if (closeOtherSessions.error) return runtime.fail(closeOtherSessions.error.message);
+    const result = await runtime.client.from("time_sessions").insert({ task_id, start_time: Date.now(), created_by: runtime.userId }).select().single();
+    runtime.logDbResult("start_timer.insert", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    const updateResult = await runtime.client.from("tasks").update({ status: "In Progress" }).eq("id", task_id).eq("user_id", runtime.userId).select().single();
+    runtime.logDbResult("start_timer.update_task", updateResult);
+    if (updateResult.error) return runtime.fail(updateResult.error.message);
+    return runtime.ok("Started timer", result.data, { session: result.data, task: updateResult.data });
+  })
 });
 
 // src/lib/mcp/tools/stop-timer.ts
-import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z5 } from "npm:zod@^4.4.3";
-function sb5(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
-  return createClient5(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 var stop_timer_default = defineTool5({
   name: "stop_timer",
   title: "Stop timer",
   description: "Stop the currently open time session on the signed-in user's task.",
   inputSchema: { task_id: z5.string().uuid() },
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      const { task_id } = input;
-      console.log(`[Tool] stop_timer invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] stop_timer authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] stop_timer authenticated user ID:`, userId);
-      const { data, error } = await sb5(ctx).from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null).select();
-      if (error) {
-        console.error(`[Tool] stop_timer Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      console.log(`[Tool] stop_timer execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { sessions: data } };
-    } catch (err) {
-      console.error(`[Tool] stop_timer unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("stop_timer", input, ctx, async ({ task_id }, runtime) => {
+    const result = await runtime.client.from("time_sessions").update({ end_time: Date.now() }).eq("task_id", task_id).eq("created_by", runtime.userId).is("end_time", null).select();
+    runtime.logDbResult("stop_timer.update", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    return runtime.ok("Stopped timer", result.data ?? [], { sessions: result.data ?? [] });
+  })
 });
 
 // src/lib/mcp/tools/team-activity.ts
-import { createClient as createClient6 } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.20.0";
-function sb6(ctx) {
-  const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
-  return createClient6(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 var team_activity_default = defineTool6({
   name: "team_activity",
   title: "Team activity snapshot",
   description: "Get the current team activity snapshot (admin only). Returns each member's active task and today's todo/progress/completed lists.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async (input, ctx) => {
-    try {
-      console.log(`[Tool] team_activity invoked with input:`, JSON.stringify(input));
-      if (!ctx.isAuthenticated()) {
-        console.warn(`[Tool] team_activity authentication failed.`);
-        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      }
-      const userId = ctx.getUserId();
-      console.log(`[Tool] team_activity authenticated user ID:`, userId);
-      const { data, error } = await sb6(ctx).rpc("get_team_activity");
-      if (error) {
-        console.error(`[Tool] team_activity Supabase query error:`, error);
-        return { content: [{ type: "text", text: error.message }], isError: true };
-      }
-      console.log(`[Tool] team_activity execution successful.`);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { activity: data } };
-    } catch (err) {
-      console.error(`[Tool] team_activity unhandled exception:`, err);
-      return {
-        isError: true,
-        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
-      };
+  handler: async (input, ctx) => runTool("team_activity", input, ctx, async (_, runtime) => {
+    const result = await runtime.client.rpc("get_team_activity");
+    runtime.logDbResult("team_activity.rpc", result);
+    if (result.error) {
+      return runtime.fail(result.error.message);
     }
-  }
+    return runtime.ok("Team activity", result.data ?? [], { activity: result.data ?? [] });
+  })
 });
 
 // src/lib/mcp/index.ts
