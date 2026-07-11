@@ -11,7 +11,7 @@ import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
 function sb(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -49,7 +49,10 @@ var list_my_tasks_default = defineTool({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { tasks: data } };
     } catch (err) {
       console.error(`[Tool] list_my_tasks unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
@@ -60,7 +63,7 @@ import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
 function sb2(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient2(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -104,7 +107,10 @@ var create_task_default = defineTool2({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
     } catch (err) {
       console.error(`[Tool] create_task unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
@@ -115,7 +121,7 @@ import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z3 } from "npm:zod@^4.4.3";
 function sb3(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient3(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -143,7 +149,7 @@ var complete_task_default = defineTool3({
       console.log(`[Tool] complete_task authenticated user ID:`, userId);
       const client = sb3(ctx);
       await client.from("time_sessions").update({ end_time: (/* @__PURE__ */ new Date()).toISOString() }).eq("task_id", task_id).is("end_time", null);
-      const updates = { status: "Finished", completion_notes: undefined, project_link: undefined };
+      const updates = { status: "Finished" };
       if (completion_notes) updates.completion_notes = completion_notes;
       if (project_link) updates.project_link = project_link;
       const { data, error } = await client.from("tasks").update(updates).eq("id", task_id).eq("user_id", userId).select().single();
@@ -155,7 +161,10 @@ var complete_task_default = defineTool3({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { task: data } };
     } catch (err) {
       console.error(`[Tool] complete_task unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
@@ -166,7 +175,7 @@ import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z4 } from "npm:zod@^4.4.3";
 function sb4(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient4(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -199,7 +208,10 @@ var start_timer_default = defineTool4({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { session: data } };
     } catch (err) {
       console.error(`[Tool] start_timer unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
@@ -210,7 +222,7 @@ import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z5 } from "npm:zod@^4.4.3";
 function sb5(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient5(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -241,7 +253,10 @@ var stop_timer_default = defineTool5({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { sessions: data } };
     } catch (err) {
       console.error(`[Tool] stop_timer unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
@@ -251,7 +266,7 @@ import { createClient as createClient6 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.20.0";
 function sb6(ctx) {
   const supabaseUrl = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL;
-  const supabaseKey = typeof Deno !== "undefined" ? (Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")) : (process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY);
+  const supabaseKey = typeof Deno !== "undefined" ? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") : process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
   return createClient6(supabaseUrl, supabaseKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -281,7 +296,10 @@ var team_activity_default = defineTool6({
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: { activity: data } };
     } catch (err) {
       console.error(`[Tool] team_activity unhandled exception:`, err);
-      return { isError: true, content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }] };
+      return {
+        isError: true,
+        content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+      };
     }
   }
 });
