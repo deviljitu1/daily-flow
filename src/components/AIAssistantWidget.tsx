@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { getGroqClient, AI_TOOLS, generateSystemPrompt } from '@/lib/ai-agent';
+import { chatCompletion, AI_TOOLS, generateSystemPrompt } from '@/lib/ai-agent';
 import type { AIPersona } from '@/lib/ai-agent';
 import { speakText, stopSpeaking } from '@/lib/voice';
 import { Bot, X, Maximize2, Minimize2, Send, Loader2, Mic, MicOff, VolumeX } from 'lucide-react';
@@ -87,20 +87,17 @@ export const AIAssistantWidget = () => {
     setIsLoading(true);
 
     try {
-      const groq = getGroqClient();
-      
       const systemPrompt = generateSystemPrompt(user.name, user.role, members, tasks, persona);
-      
-      const groqMessages = [
+
+      const conversation: any[] = [
         { role: 'system', content: systemPrompt },
-        ...newMessages
+        ...newMessages,
       ];
 
-      const runner = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: groqMessages as any,
-        tools: AI_TOOLS as any,
-        tool_choice: 'auto'
+      const runner = await chatCompletion({
+        messages: conversation as any,
+        tools: AI_TOOLS,
+        tool_choice: 'auto',
       });
 
       const responseMessage = runner.choices[0].message;
@@ -108,11 +105,11 @@ export const AIAssistantWidget = () => {
       // Handle tool calls
       if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
         setMessages(prev => [...prev, { role: 'assistant', content: 'Working on it...' }]);
-        
+
         for (const toolCall of responseMessage.tool_calls) {
           const args = JSON.parse(toolCall.function.arguments);
           let resultStr = "Success";
-          
+
           try {
             if (toolCall.function.name === 'create_task') {
               let targetUserId = user.userId;
@@ -132,7 +129,7 @@ export const AIAssistantWidget = () => {
                 user_id: targetUserId
               });
               resultStr = "Task created successfully.";
-            } 
+            }
             else if (toolCall.function.name === 'delete_task') {
               await deleteTask(args.task_id);
               resultStr = "Task deleted successfully.";
@@ -149,19 +146,18 @@ export const AIAssistantWidget = () => {
           }
 
           // Push the tool result back into the message history
-          groqMessages.push(responseMessage as any);
-          groqMessages.push({
+          conversation.push(responseMessage as any);
+          conversation.push({
             role: 'tool',
             tool_call_id: toolCall.id,
             name: toolCall.function.name,
-            content: resultStr
+            content: resultStr,
           });
         }
-        
+
         // Second call with tool results
-        const secondResponse = await groq.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
-          messages: groqMessages as any
+        const secondResponse = await chatCompletion({
+          messages: conversation as any,
         });
         
         // Replace the "Working on it..." with the actual response
@@ -182,7 +178,7 @@ export const AIAssistantWidget = () => {
     } catch (error: any) {
       console.error(error);
       toast({ title: 'AI Error', description: error.message, variant: 'destructive' });
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I ran into an error connecting to Groq. Please check your API key and connection." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I ran into an error reaching the AI service. Please try again in a moment." }]);
     } finally {
       setIsLoading(false);
     }

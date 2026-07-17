@@ -50,7 +50,17 @@ const Chat = () => {
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [groupUnreadCount, setGroupUnreadCount] = useState(0);
     const [isAtBottom, setIsAtBottom] = useState(true);
+    const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Extract the storage-path portion of an attachment reference. Handles both
+    // new-format paths (e.g. "userId/abc.png") and legacy full public URLs.
+    const extractAttachmentPath = (ref: string): string => {
+        const marker = '/chat-attachments/';
+        const idx = ref.indexOf(marker);
+        if (idx >= 0) return ref.slice(idx + marker.length).split('?')[0];
+        return ref;
+    };
 
     // Determine chat partner name for header
     const chatPartner = selectedUser
@@ -208,6 +218,32 @@ const Chat = () => {
         }
     }, [lastMessageId]);
 
+    // Resolve short-lived signed URLs for any attachments in the current message list.
+    useEffect(() => {
+        const missing = messages
+            .filter((m) => m.attachment_url)
+            .map((m) => extractAttachmentPath(m.attachment_url!))
+            .filter((p) => !attachmentUrls[p]);
+
+        if (missing.length === 0) return;
+        const unique = Array.from(new Set(missing));
+
+        (async () => {
+            const updates: Record<string, string> = {};
+            for (const path of unique) {
+                const { data, error } = await supabase.storage
+                    .from('chat-attachments')
+                    .createSignedUrl(path, 3600);
+                if (!error && data?.signedUrl) {
+                    updates[path] = data.signedUrl;
+                }
+            }
+            if (Object.keys(updates).length > 0) {
+                setAttachmentUrls((prev) => ({ ...prev, ...updates }));
+            }
+        })();
+    }, [messages]);
+
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
         // 100px threshold to be considered "at bottom"
@@ -237,11 +273,8 @@ const Chat = () => {
                     throw uploadError;
                 }
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chat-attachments')
-                    .getPublicUrl(filePath);
-
-                attachmentUrl = publicUrl;
+                // Store the storage path only; render via short-lived signed URLs.
+                attachmentUrl = filePath;
                 attachmentType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
                 attachmentName = selectedFile.name;
             }
@@ -555,33 +588,42 @@ const Chat = () => {
                                                     <span className="flex items-center gap-1"><Info className="h-3 w-3" /> This message was deleted</span>
                                                 ) : (
                                                     <>
-                                                        {msg.attachment_url && (
-                                                            <div className="mb-2">
-                                                                {msg.attachment_type === 'image' ? (
-                                                                    <div className="relative group/img cursor-pointer">
-                                                                        <img
-                                                                            src={msg.attachment_url}
-                                                                            alt="Attachment"
-                                                                            className="rounded-lg max-w-full max-h-60 object-cover border border-border/50"
-                                                                            onClick={() => window.open(msg.attachment_url!, '_blank')}
-                                                                        />
-                                                                    </div>
-                                                                ) : (
-                                                                    <a
-                                                                        href={msg.attachment_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border/50"
-                                                                    >
-                                                                        <FileText className="h-8 w-8 text-primary" />
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className="text-sm font-medium truncate max-w-[150px]">{msg.attachment_name || 'File'}</p>
-                                                                            <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+                                                        {msg.attachment_url && (() => {
+                                                            const path = extractAttachmentPath(msg.attachment_url);
+                                                            const signed = attachmentUrls[path];
+                                                            if (!signed) {
+                                                                return (
+                                                                    <div className="mb-2 text-xs text-muted-foreground italic">Loading attachment…</div>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <div className="mb-2">
+                                                                    {msg.attachment_type === 'image' ? (
+                                                                        <div className="relative group/img cursor-pointer">
+                                                                            <img
+                                                                                src={signed}
+                                                                                alt="Attachment"
+                                                                                className="rounded-lg max-w-full max-h-60 object-cover border border-border/50"
+                                                                                onClick={() => window.open(signed, '_blank')}
+                                                                            />
                                                                         </div>
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                    ) : (
+                                                                        <a
+                                                                            href={signed}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border/50"
+                                                                        >
+                                                                            <FileText className="h-8 w-8 text-primary" />
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="text-sm font-medium truncate max-w-[150px]">{msg.attachment_name || 'File'}</p>
+                                                                                <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+                                                                            </div>
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                         {msg.content}
                                                         {msg.is_edited && <span className="text-[10px] ml-1 opacity-70">(edited)</span>}
                                                     </>
