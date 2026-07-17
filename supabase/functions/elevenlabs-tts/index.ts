@@ -1,7 +1,9 @@
 // ElevenLabs Text-to-Speech proxy
 // Keeps the API key server-side; returns base64-encoded MP3 audio.
+// Requires an authenticated Supabase session to prevent quota abuse.
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George
 const MODEL_ID = 'eleven_turbo_v2_5';
@@ -12,6 +14,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // --- Auth guard ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
     if (!apiKey) {
       return new Response(
@@ -63,7 +87,6 @@ Deno.serve(async (req) => {
     }
 
     const buf = new Uint8Array(await resp.arrayBuffer());
-    // Chunk to avoid stack overflow on large buffers
     let binary = '';
     const CHUNK = 0x8000;
     for (let i = 0; i < buf.length; i += CHUNK) {
