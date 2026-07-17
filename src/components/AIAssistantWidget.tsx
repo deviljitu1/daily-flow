@@ -178,7 +178,7 @@ export const AIAssistantWidget = () => {
     } catch (error: any) {
       console.error(error);
       toast({ title: 'AI Error', description: error.message, variant: 'destructive' });
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I ran into an error connecting to Groq. Please check your API key and connection." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I ran into an error reaching the AI service. Please try again in a moment." }]);
     } finally {
       setIsLoading(false);
     }
