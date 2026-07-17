@@ -247,11 +247,8 @@ const Chat = () => {
                     throw uploadError;
                 }
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chat-attachments')
-                    .getPublicUrl(filePath);
-
-                attachmentUrl = publicUrl;
+                // Store the storage path only; render via short-lived signed URLs.
+                attachmentUrl = filePath;
                 attachmentType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
                 attachmentName = selectedFile.name;
             }
