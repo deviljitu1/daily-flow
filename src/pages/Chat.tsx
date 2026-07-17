@@ -50,7 +50,17 @@ const Chat = () => {
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [groupUnreadCount, setGroupUnreadCount] = useState(0);
     const [isAtBottom, setIsAtBottom] = useState(true);
+    const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Extract the storage-path portion of an attachment reference. Handles both
+    // new-format paths (e.g. "userId/abc.png") and legacy full public URLs.
+    const extractAttachmentPath = (ref: string): string => {
+        const marker = '/chat-attachments/';
+        const idx = ref.indexOf(marker);
+        if (idx >= 0) return ref.slice(idx + marker.length).split('?')[0];
+        return ref;
+    };
 
     // Determine chat partner name for header
     const chatPartner = selectedUser
