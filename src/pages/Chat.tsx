@@ -218,6 +218,32 @@ const Chat = () => {
         }
     }, [lastMessageId]);
 
+    // Resolve short-lived signed URLs for any attachments in the current message list.
+    useEffect(() => {
+        const missing = messages
+            .filter((m) => m.attachment_url)
+            .map((m) => extractAttachmentPath(m.attachment_url!))
+            .filter((p) => !attachmentUrls[p]);
+
+        if (missing.length === 0) return;
+        const unique = Array.from(new Set(missing));
+
+        (async () => {
+            const updates: Record<string, string> = {};
+            for (const path of unique) {
+                const { data, error } = await supabase.storage
+                    .from('chat-attachments')
+                    .createSignedUrl(path, 3600);
+                if (!error && data?.signedUrl) {
+                    updates[path] = data.signedUrl;
+                }
+            }
+            if (Object.keys(updates).length > 0) {
+                setAttachmentUrls((prev) => ({ ...prev, ...updates }));
+            }
+        })();
+    }, [messages]);
+
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
         // 100px threshold to be considered "at bottom"
