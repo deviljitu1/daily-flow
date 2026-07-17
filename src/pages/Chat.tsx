@@ -588,33 +588,42 @@ const Chat = () => {
                                                     <span className="flex items-center gap-1"><Info className="h-3 w-3" /> This message was deleted</span>
                                                 ) : (
                                                     <>
-                                                        {msg.attachment_url && (
-                                                            <div className="mb-2">
-                                                                {msg.attachment_type === 'image' ? (
-                                                                    <div className="relative group/img cursor-pointer">
-                                                                        <img
-                                                                            src={msg.attachment_url}
-                                                                            alt="Attachment"
-                                                                            className="rounded-lg max-w-full max-h-60 object-cover border border-border/50"
-                                                                            onClick={() => window.open(msg.attachment_url!, '_blank')}
-                                                                        />
-                                                                    </div>
-                                                                ) : (
-                                                                    <a
-                                                                        href={msg.attachment_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border/50"
-                                                                    >
-                                                                        <FileText className="h-8 w-8 text-primary" />
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className="text-sm font-medium truncate max-w-[150px]">{msg.attachment_name || 'File'}</p>
-                                                                            <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+                                                        {msg.attachment_url && (() => {
+                                                            const path = extractAttachmentPath(msg.attachment_url);
+                                                            const signed = attachmentUrls[path];
+                                                            if (!signed) {
+                                                                return (
+                                                                    <div className="mb-2 text-xs text-muted-foreground italic">Loading attachment…</div>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <div className="mb-2">
+                                                                    {msg.attachment_type === 'image' ? (
+                                                                        <div className="relative group/img cursor-pointer">
+                                                                            <img
+                                                                                src={signed}
+                                                                                alt="Attachment"
+                                                                                className="rounded-lg max-w-full max-h-60 object-cover border border-border/50"
+                                                                                onClick={() => window.open(signed, '_blank')}
+                                                                            />
                                                                         </div>
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                    ) : (
+                                                                        <a
+                                                                            href={signed}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border/50"
+                                                                        >
+                                                                            <FileText className="h-8 w-8 text-primary" />
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="text-sm font-medium truncate max-w-[150px]">{msg.attachment_name || 'File'}</p>
+                                                                                <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+                                                                            </div>
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                         {msg.content}
                                                         {msg.is_edited && <span className="text-[10px] ml-1 opacity-70">(edited)</span>}
                                                     </>
