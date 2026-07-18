@@ -254,12 +254,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [tasks]);
 
-  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => {
+  const addTask = useCallback(async (task: NewTaskInput) => {
     if (!user) return;
-
-    // Check if task duration is set.
     const targetUserId = task.user_id || user.userId;
-
+    const isSelfAssigned = targetUserId === user.userId;
+    const needsApproval = user.role !== 'admin' ? false : false; // admins auto-approve; team completions later flip to Pending on finish
     const { error } = await supabase.from('tasks').insert({
       user_id: targetUserId,
       title: task.title,
@@ -267,17 +266,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       category: task.category,
       date: task.date,
       target_minutes: task.target_minutes || null,
+      client_id: task.client_id ?? null,
+      project_id: task.project_id ?? null,
+      priority: task.priority ?? 'Medium',
+      due_date: task.due_date ?? null,
+      is_billable: task.is_billable ?? false,
+      hourly_rate_override: task.hourly_rate_override ?? null,
     });
-
     if (error) {
       console.error('Error adding task:', error);
       throw error;
     }
-
     await refreshTasks();
   }, [user, refreshTasks]);
 
-  const updateTask = useCallback(async (id: string, updates: Record<string, unknown>) => {
+  const updateTask = useCallback(async (id: string, updates: TaskUpdateInput) => {
     await supabase.from('tasks').update(updates as never).eq('id', id);
     await refreshTasks();
   }, [refreshTasks]);
@@ -286,6 +289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.from('tasks').delete().eq('id', id);
     await refreshTasks();
   }, [refreshTasks]);
+
 
   const startTimer = useCallback(async (taskId: string) => {
     if (!user) return;
