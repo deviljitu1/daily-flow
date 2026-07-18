@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          company: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachment_name: string | null
@@ -101,15 +143,72 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          budget_hours: number | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          budget_hours?: number | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          budget_hours?: number | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          approved_at: string | null
+          approved_by: string | null
           category: string
+          client_id: string | null
           completion_notes: string | null
           created_at: string
           date: string
           description: string | null
+          due_date: string | null
+          hourly_rate_override: number | null
           id: string
+          is_billable: boolean
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string | null
           project_link: string | null
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["task_status"]
           target_minutes: number | null
           title: string
@@ -117,13 +216,23 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string
+          client_id?: string | null
           completion_notes?: string | null
           created_at?: string
           date?: string
           description?: string | null
+          due_date?: string | null
+          hourly_rate_override?: number | null
           id?: string
+          is_billable?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
           project_link?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           target_minutes?: number | null
           title: string
@@ -131,20 +240,45 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string
+          client_id?: string | null
           completion_notes?: string | null
           created_at?: string
           date?: string
           description?: string | null
+          due_date?: string | null
+          hourly_rate_override?: number | null
           id?: string
+          is_billable?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
           project_link?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           target_minutes?: number | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_sessions: {
         Row: {
@@ -214,6 +348,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "employee"
+      approval_status: "Not Required" | "Pending" | "Approved" | "Rejected"
       employee_type:
         | "Developer"
         | "Graphic Designer"
@@ -223,6 +358,8 @@ export type Database = {
         | "SEO Executive"
         | "Sales"
         | "Other"
+      project_status: "Active" | "On Hold" | "Completed"
+      task_priority: "Low" | "Medium" | "High" | "Urgent"
       task_status: "Not Started" | "In Progress" | "Finished"
     }
     CompositeTypes: {
@@ -352,6 +489,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "employee"],
+      approval_status: ["Not Required", "Pending", "Approved", "Rejected"],
       employee_type: [
         "Developer",
         "Graphic Designer",
@@ -362,6 +500,8 @@ export const Constants = {
         "Sales",
         "Other",
       ],
+      project_status: ["Active", "On Hold", "Completed"],
+      task_priority: ["Low", "Medium", "High", "Urgent"],
       task_status: ["Not Started", "In Progress", "Finished"],
     },
   },
