@@ -1,28 +1,64 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TaskWithSessions, ProfileWithRole, AppRole } from '@/types';
+import { TaskWithSessions, ProfileWithRole, AppRole, Client, Project, TaskPriority, ApprovalStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { getElapsedMs } from '@/lib/utils';
 import { getNotificationPrefs, playNotificationSound } from '@/lib/notifications';
 
+export interface NewTaskInput {
+  title: string;
+  description: string;
+  category: string;
+  date: string;
+  target_minutes?: number;
+  user_id?: string;
+  client_id?: string | null;
+  project_id?: string | null;
+  priority?: TaskPriority;
+  due_date?: string | null;
+  is_billable?: boolean;
+  hourly_rate_override?: number | null;
+}
+
+export type TaskUpdateInput = Partial<NewTaskInput> & {
+  status?: string;
+  approval_status?: ApprovalStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+};
+
 interface DataContextType {
   members: ProfileWithRole[];
   tasks: TaskWithSessions[];
+  clients: Client[];
+  projects: Project[];
   loading: boolean;
-  addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => Promise<void>;
-  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string; target_minutes?: number }) => Promise<void>;
+  addTask: (task: NewTaskInput) => Promise<void>;
+  updateTask: (id: string, updates: TaskUpdateInput) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;
   finishTask: (taskId: string, details?: { completion_notes?: string; project_link?: string }) => Promise<void>;
+  approveTask: (taskId: string) => Promise<void>;
+  rejectTask: (taskId: string, reason: string) => Promise<void>;
   refreshTasks: () => Promise<void>;
   refreshMembers: () => Promise<void>;
+  refreshClients: () => Promise<void>;
+  refreshProjects: () => Promise<void>;
+  addClient: (input: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<void>;
+  updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
+  addProject: (input: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
   updateMember: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
   updateMemberPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   deleteMember: (id: string) => Promise<void>;
 }
+
 
 const DataContext = createContext<DataContextType | null>(null);
 
@@ -36,7 +72,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const [members, setMembers] = useState<ProfileWithRole[]>([]);
   const [tasks, setTasks] = useState<TaskWithSessions[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const refreshClients = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('clients').select('*').order('name');
+    setClients((data as Client[]) || []);
+  }, [user]);
+
+  const refreshProjects = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+    setProjects((data as Project[]) || []);
+  }, [user]);
+
+  const addClient = useCallback(async (input: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    if (!user) return;
+    const { error } = await supabase.from('clients').insert({ ...input, created_by: user.userId });
+    if (error) throw error;
+    await refreshClients();
+  }, [user, refreshClients]);
+
+  const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
+    const { error } = await supabase.from('clients').update(updates as never).eq('id', id);
+    if (error) throw error;
+    await refreshClients();
+  }, [refreshClients]);
+
+  const deleteClient = useCallback(async (id: string) => {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
+    await Promise.all([refreshClients(), refreshProjects(), refreshTasksRef.current?.()]);
+  }, []);
+
+  const addProject = useCallback(async (input: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    if (!user) return;
+    const { error } = await supabase.from('projects').insert({ ...input, created_by: user.userId });
+    if (error) throw error;
+    await refreshProjects();
+  }, [user, refreshProjects]);
+
+  const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {
+    const { error } = await supabase.from('projects').update(updates as never).eq('id', id);
+    if (error) throw error;
+    await refreshProjects();
+  }, [refreshProjects]);
+
+  const deleteProject = useCallback(async (id: string) => {
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) throw error;
+    await refreshProjects();
+  }, [refreshProjects]);
+
+  const refreshTasksRef = useRef<(() => Promise<void>) | null>(null);
+
 
   const refreshTasks = useCallback(async () => {
     if (!user) return;
@@ -85,15 +176,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   useEffect(() => {
+    refreshTasksRef.current = refreshTasks;
+  }, [refreshTasks]);
+
+  useEffect(() => {
     if (user) {
       setLoading(true);
-      Promise.all([refreshTasks(), refreshMembers()]).finally(() => setLoading(false));
+      Promise.all([refreshTasks(), refreshMembers(), refreshClients(), refreshProjects()]).finally(() => setLoading(false));
     } else {
       setTasks([]);
       setMembers([]);
+      setClients([]);
+      setProjects([]);
       setLoading(false);
     }
-  }, [user, refreshTasks, refreshMembers]);
+  }, [user, refreshTasks, refreshMembers, refreshClients, refreshProjects]);
+
 
   // Ref to track notified tasks to avoid spam
   const notifiedTasks = useRef<Record<string, Set<number>>>({});
@@ -156,12 +254,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [tasks]);
 
-  const addTask = useCallback(async (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => {
+  const addTask = useCallback(async (task: NewTaskInput) => {
     if (!user) return;
-
-    // Check if task duration is set.
     const targetUserId = task.user_id || user.userId;
-
+    const isSelfAssigned = targetUserId === user.userId;
+    const needsApproval = user.role !== 'admin' ? false : false; // admins auto-approve; team completions later flip to Pending on finish
     const { error } = await supabase.from('tasks').insert({
       user_id: targetUserId,
       title: task.title,
@@ -169,17 +266,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       category: task.category,
       date: task.date,
       target_minutes: task.target_minutes || null,
+      client_id: task.client_id ?? null,
+      project_id: task.project_id ?? null,
+      priority: task.priority ?? 'Medium',
+      due_date: task.due_date ?? null,
+      is_billable: task.is_billable ?? false,
+      hourly_rate_override: task.hourly_rate_override ?? null,
     });
-
     if (error) {
       console.error('Error adding task:', error);
       throw error;
     }
-
     await refreshTasks();
   }, [user, refreshTasks]);
 
-  const updateTask = useCallback(async (id: string, updates: Record<string, unknown>) => {
+  const updateTask = useCallback(async (id: string, updates: TaskUpdateInput) => {
     await supabase.from('tasks').update(updates as never).eq('id', id);
     await refreshTasks();
   }, [refreshTasks]);
@@ -188,6 +289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.from('tasks').delete().eq('id', id);
     await refreshTasks();
   }, [refreshTasks]);
+
 
   const startTimer = useCallback(async (taskId: string) => {
     if (!user) return;
@@ -225,21 +327,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const finishTask = useCallback(async (taskId: string, details?: { completion_notes?: string; project_link?: string }) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task || !user) return;
 
-    // Close open sessions
     const openSessions = task.time_sessions.filter(s => s.end_time === null);
     for (const session of openSessions) {
       await supabase.from('time_sessions').update({ end_time: Date.now() }).eq('id', session.id);
     }
 
-    const updates: Record<string, unknown> = { status: 'Finished' };
+    const isAdmin = user.role === 'admin';
+    const updates: Record<string, unknown> = {
+      status: 'Finished',
+      approval_status: isAdmin ? 'Approved' : 'Pending',
+    };
+    if (isAdmin) {
+      updates.approved_by = user.userId;
+      updates.approved_at = new Date().toISOString();
+    }
     if (details?.completion_notes) updates.completion_notes = details.completion_notes;
     if (details?.project_link) updates.project_link = details.project_link;
 
     await supabase.from('tasks').update(updates as never).eq('id', taskId);
     await refreshTasks();
-  }, [tasks, refreshTasks]);
+  }, [tasks, user, refreshTasks]);
+
+  const approveTask = useCallback(async (taskId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('tasks').update({
+      approval_status: 'Approved',
+      approved_by: user.userId,
+      approved_at: new Date().toISOString(),
+      rejection_reason: null,
+    } as never).eq('id', taskId);
+    await refreshTasks();
+  }, [user, refreshTasks]);
+
+  const rejectTask = useCallback(async (taskId: string, reason: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('tasks').update({
+      approval_status: 'Rejected',
+      approved_by: user.userId,
+      approved_at: new Date().toISOString(),
+      rejection_reason: reason,
+      status: 'In Progress',
+    } as never).eq('id', taskId);
+    await refreshTasks();
+  }, [user, refreshTasks]);
+
 
   const toggleMemberActive = async (profileId: string, isActive: boolean) => {
     if (!user || user.role !== 'admin') return;
@@ -313,6 +446,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         members,
         tasks,
+        clients,
+        projects,
         loading,
         addTask,
         updateTask,
@@ -320,13 +455,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startTimer,
         pauseTimer,
         finishTask,
+        approveTask,
+        rejectTask,
         refreshTasks,
         refreshMembers,
+        refreshClients,
+        refreshProjects,
+        addClient,
+        updateClient,
+        deleteClient,
+        addProject,
+        updateProject,
+        deleteProject,
         toggleMemberActive,
         updateMember,
         updateMemberPassword,
         deleteMember,
       }}
+
     >
       {children}
     </DataContext.Provider>
