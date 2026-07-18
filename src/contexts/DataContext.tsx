@@ -176,15 +176,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   useEffect(() => {
+    refreshTasksRef.current = refreshTasks;
+  }, [refreshTasks]);
+
+  useEffect(() => {
     if (user) {
       setLoading(true);
-      Promise.all([refreshTasks(), refreshMembers()]).finally(() => setLoading(false));
+      Promise.all([refreshTasks(), refreshMembers(), refreshClients(), refreshProjects()]).finally(() => setLoading(false));
     } else {
       setTasks([]);
       setMembers([]);
+      setClients([]);
+      setProjects([]);
       setLoading(false);
     }
-  }, [user, refreshTasks, refreshMembers]);
+  }, [user, refreshTasks, refreshMembers, refreshClients, refreshProjects]);
+
 
   // Ref to track notified tasks to avoid spam
   const notifiedTasks = useRef<Record<string, Set<number>>>({});
