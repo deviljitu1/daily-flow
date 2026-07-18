@@ -72,7 +72,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const [members, setMembers] = useState<ProfileWithRole[]>([]);
   const [tasks, setTasks] = useState<TaskWithSessions[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const refreshClients = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('clients').select('*').order('name');
+    setClients((data as Client[]) || []);
+  }, [user]);
+
+  const refreshProjects = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+    setProjects((data as Project[]) || []);
+  }, [user]);
+
+  const addClient = useCallback(async (input: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    if (!user) return;
+    const { error } = await supabase.from('clients').insert({ ...input, created_by: user.userId });
+    if (error) throw error;
+    await refreshClients();
+  }, [user, refreshClients]);
+
+  const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
+    const { error } = await supabase.from('clients').update(updates as never).eq('id', id);
+    if (error) throw error;
+    await refreshClients();
+  }, [refreshClients]);
+
+  const deleteClient = useCallback(async (id: string) => {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
+    await Promise.all([refreshClients(), refreshProjects(), refreshTasksRef.current?.()]);
+  }, []);
+
+  const addProject = useCallback(async (input: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    if (!user) return;
+    const { error } = await supabase.from('projects').insert({ ...input, created_by: user.userId });
+    if (error) throw error;
+    await refreshProjects();
+  }, [user, refreshProjects]);
+
+  const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {
+    const { error } = await supabase.from('projects').update(updates as never).eq('id', id);
+    if (error) throw error;
+    await refreshProjects();
+  }, [refreshProjects]);
+
+  const deleteProject = useCallback(async (id: string) => {
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) throw error;
+    await refreshProjects();
+  }, [refreshProjects]);
+
+  const refreshTasksRef = useRef<(() => Promise<void>) | null>(null);
+
 
   const refreshTasks = useCallback(async () => {
     if (!user) return;
