@@ -153,6 +153,31 @@ const TaskCard = ({ task, showUser, readOnly }: TaskCardProps) => {
                   <p className="text-xs text-muted-foreground font-medium">{showUser}</p>
                 </div>
               )}
+
+              {isFinished && (task.completion_notes || task.project_link) && (
+                <div className="mt-3 space-y-2 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                  {task.completion_notes && (
+                    <div className="flex items-start gap-2 text-xs">
+                      <FileText className="h-3.5 w-3.5 text-green-600 mt-0.5 shrink-0" />
+                      <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">{task.completion_notes}</p>
+                    </div>
+                  )}
+                  {task.project_link && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <LinkIcon className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      <a
+                        href={task.project_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline truncate font-medium"
+                      >
+                        {task.project_link}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           </div>
 
