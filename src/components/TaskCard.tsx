@@ -5,7 +5,7 @@ import { formatTimer, formatDuration, getElapsedMs, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2, Copy, Coffee } from 'lucide-react';
+import { Play, Pause, CheckCircle2, Clock, CalendarDays, Tag, MoreVertical, Pencil, Trash2, Copy, Coffee, LinkIcon, FileText } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
