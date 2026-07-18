@@ -1,28 +1,64 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TaskWithSessions, ProfileWithRole, AppRole } from '@/types';
+import { TaskWithSessions, ProfileWithRole, AppRole, Client, Project, TaskPriority, ApprovalStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { getElapsedMs } from '@/lib/utils';
 import { getNotificationPrefs, playNotificationSound } from '@/lib/notifications';
 
+export interface NewTaskInput {
+  title: string;
+  description: string;
+  category: string;
+  date: string;
+  target_minutes?: number;
+  user_id?: string;
+  client_id?: string | null;
+  project_id?: string | null;
+  priority?: TaskPriority;
+  due_date?: string | null;
+  is_billable?: boolean;
+  hourly_rate_override?: number | null;
+}
+
+export type TaskUpdateInput = Partial<NewTaskInput> & {
+  status?: string;
+  approval_status?: ApprovalStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+};
+
 interface DataContextType {
   members: ProfileWithRole[];
   tasks: TaskWithSessions[];
+  clients: Client[];
+  projects: Project[];
   loading: boolean;
-  addTask: (task: { title: string; description: string; category: string; date: string; target_minutes?: number; user_id?: string }) => Promise<void>;
-  updateTask: (id: string, updates: { title?: string; description?: string; category?: string; status?: string; date?: string; target_minutes?: number }) => Promise<void>;
+  addTask: (task: NewTaskInput) => Promise<void>;
+  updateTask: (id: string, updates: TaskUpdateInput) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskId: string) => Promise<void>;
   finishTask: (taskId: string, details?: { completion_notes?: string; project_link?: string }) => Promise<void>;
+  approveTask: (taskId: string) => Promise<void>;
+  rejectTask: (taskId: string, reason: string) => Promise<void>;
   refreshTasks: () => Promise<void>;
   refreshMembers: () => Promise<void>;
+  refreshClients: () => Promise<void>;
+  refreshProjects: () => Promise<void>;
+  addClient: (input: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<void>;
+  updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
+  addProject: (input: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   toggleMemberActive: (profileId: string, isActive: boolean) => Promise<void>;
   updateMember: (id: string, updates: { name?: string; employee_type?: string; created_at?: string }) => Promise<void>;
   updateMemberPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   deleteMember: (id: string) => Promise<void>;
 }
+
 
 const DataContext = createContext<DataContextType | null>(null);
 
