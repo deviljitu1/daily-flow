@@ -327,21 +327,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const finishTask = useCallback(async (taskId: string, details?: { completion_notes?: string; project_link?: string }) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task || !user) return;
 
-    // Close open sessions
     const openSessions = task.time_sessions.filter(s => s.end_time === null);
     for (const session of openSessions) {
       await supabase.from('time_sessions').update({ end_time: Date.now() }).eq('id', session.id);
     }
 
-    const updates: Record<string, unknown> = { status: 'Finished' };
+    const isAdmin = user.role === 'admin';
+    const updates: Record<string, unknown> = {
+      status: 'Finished',
+      approval_status: isAdmin ? 'Approved' : 'Pending',
+    };
+    if (isAdmin) {
+      updates.approved_by = user.userId;
+      updates.approved_at = new Date().toISOString();
+    }
     if (details?.completion_notes) updates.completion_notes = details.completion_notes;
     if (details?.project_link) updates.project_link = details.project_link;
 
     await supabase.from('tasks').update(updates as never).eq('id', taskId);
     await refreshTasks();
-  }, [tasks, refreshTasks]);
+  }, [tasks, user, refreshTasks]);
+
+  const approveTask = useCallback(async (taskId: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('tasks').update({
+      approval_status: 'Approved',
+      approved_by: user.userId,
+      approved_at: new Date().toISOString(),
+      rejection_reason: null,
+    } as never).eq('id', taskId);
+    await refreshTasks();
+  }, [user, refreshTasks]);
+
+  const rejectTask = useCallback(async (taskId: string, reason: string) => {
+    if (!user || user.role !== 'admin') return;
+    await supabase.from('tasks').update({
+      approval_status: 'Rejected',
+      approved_by: user.userId,
+      approved_at: new Date().toISOString(),
+      rejection_reason: reason,
+      status: 'In Progress',
+    } as never).eq('id', taskId);
+    await refreshTasks();
+  }, [user, refreshTasks]);
+
 
   const toggleMemberActive = async (profileId: string, isActive: boolean) => {
     if (!user || user.role !== 'admin') return;
