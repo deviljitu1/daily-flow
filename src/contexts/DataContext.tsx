@@ -446,6 +446,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         members,
         tasks,
+        clients,
+        projects,
         loading,
         addTask,
         updateTask,
@@ -453,13 +455,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startTimer,
         pauseTimer,
         finishTask,
+        approveTask,
+        rejectTask,
         refreshTasks,
         refreshMembers,
+        refreshClients,
+        refreshProjects,
+        addClient,
+        updateClient,
+        deleteClient,
+        addProject,
+        updateProject,
+        deleteProject,
         toggleMemberActive,
         updateMember,
         updateMemberPassword,
         deleteMember,
       }}
+
     >
       {children}
     </DataContext.Provider>
