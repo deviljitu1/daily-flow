@@ -8,6 +8,7 @@ import StatCard from '@/components/StatCard';
 import { ClipboardList, CheckCircle2, Clock, CalendarRange } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardCharts from '@/components/DashboardCharts';
+import Seo from "@/components/Seo";
 
 const MemberDashboard = () => {
   const { user } = useAuth();
@@ -47,7 +48,8 @@ const MemberDashboard = () => {
     <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="sr-only">Dashboard</h1>
+          <Seo title="My Dashboard — WorkTracker" description="See your tasks for today, run timers, and review your logged hours in WorkTracker." path="/" noindex />
+          <h1 className="sr-only">My Dashboard — daily tasks and time</h1>
           <h2 className="text-3xl font-bold tracking-tight">
             {getGreeting()}, <span className="text-primary">{user?.name.split(' ')[0]}</span>
           </h2>

@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, Users, Activity, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Seo from "@/components/Seo";
 
 interface TeamMemberActivity {
     user_id: string;
@@ -164,6 +165,7 @@ const TeamStatus = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+            <Seo title="Team Status — WorkTracker" description="Real-time view of who is working, what they are working on, and today's team activity." path="/team-status" noindex />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Team <span className="text-primary">Status</span></h1>

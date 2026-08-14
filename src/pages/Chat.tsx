@@ -20,6 +20,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import Seo from "@/components/Seo";
+import Seo from "@/components/Seo";
 
 interface Message {
     id: string;
@@ -372,7 +374,8 @@ const Chat = () => {
 
     return (
         <div className="flex h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
-            <h1 className="sr-only">Chat</h1>
+            <Seo title="Team Communication — WorkTracker" description="Message teammates, share files, and keep project conversations in one place inside WorkTracker." path="/chat" noindex />
+            <h1 className="sr-only">Team Communication</h1>
             {/* Sidebar: Chat List */}
             <div className={cn(
                 "w-full md:w-80 flex-col glass-card border-none rounded-2xl overflow-hidden shrink-0",
@@ -502,7 +505,7 @@ const Chat = () => {
                             </div>
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" id="view-members-trigger" title="View Members">
+                                    <Button variant="ghost" size="icon" id="view-members-trigger" title="View Members" aria-label="View Members">
                                         <Info className="h-5 w-5 text-muted-foreground" />
                                     </Button>
                                 </DialogTrigger>
