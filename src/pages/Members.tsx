@@ -17,6 +17,7 @@ import { getMemberTitle } from '@/lib/utils';
 import EditMemberDialog from '@/components/EditMemberDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import Seo from "@/components/Seo";
 
 const Members = () => {
   const { members, toggleMemberActive, refreshMembers, loading, deleteMember } = useData();
@@ -97,6 +98,7 @@ const Members = () => {
 
   return (
     <div className="space-y-6">
+      <Seo title="Team Members — WorkTracker" description="Manage your team members, their roles, and access inside your WorkTracker workspace." path="/members" noindex />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Team</h1>

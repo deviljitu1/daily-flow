@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import DashboardCharts from '@/components/DashboardCharts';
 import { Button } from '@/components/ui/button';
+import Seo from "@/components/Seo";
 
 const AdminDashboard = () => {
   const { members, tasks, loading } = useData();
@@ -98,7 +99,8 @@ const AdminDashboard = () => {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="sr-only">Admin Dashboard</h1>
+          <Seo title="Admin Dashboard — WorkTracker" description="Track team tasks, hours, clients, and approvals from the WorkTracker admin dashboard." path="/" noindex />
+          <h1 className="sr-only">Admin Dashboard — team overview</h1>
           <h2 className="text-3xl font-bold tracking-tight">
             {getGreeting()}, <span className="text-primary">Admin</span>
           </h2>

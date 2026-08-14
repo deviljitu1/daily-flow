@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Clock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import Seo from "@/components/Seo";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -56,6 +57,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex w-full">
+      <Seo title="Sign in — WorkTracker" description="Sign in to WorkTracker to log daily tasks, run time timers, and review your team's work." path="/login" />
       {/* Left branding panel with animated gradient */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-primary/5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/5 animate-gradient-xy" />
