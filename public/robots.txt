@@ -12,3 +12,8 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /members
+Disallow: /team-status
+Disallow: /chat
+
+Sitemap: https://getweb-task.lovable.app/sitemap.xml
