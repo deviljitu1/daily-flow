@@ -20,6 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import Seo from "@/components/Seo";
 
 interface Message {
     id: string;
